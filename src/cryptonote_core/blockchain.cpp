@@ -106,9 +106,6 @@ static const struct {
 
   // version 6 starts from block 1400000, which is on or around the 16th of September, 2017. Fork time finalised on 2017-08-18.
   { 6, 1400000, 0, 1503046577 },
-
-  // version 7 starts from block 1546000, which is on or around the 6th of April, 2018. Fork time finalised on 2018-03-17.
-  { 7, 1546000, 0, 1521303150 },
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 1009826;
 
@@ -130,8 +127,6 @@ static const struct {
   { 5, 802660, 0, 1472415036 + 86400*180 }, // add 5 months on testnet to shut the update warning up since there's a large gap to v6
 
   { 6, 971400, 0, 1501709789 },
-  { 7, 1057027, 0, 1512211236 },
-  { 8, 1057058, 0, 1515967497 },
 };
 static const uint64_t testnet_hard_fork_version_1_till = 624633;
 
@@ -150,7 +145,6 @@ static const struct {
   { 4, 34000, 0, 1521240000 },
   { 5, 35000, 0, 1521360000 },
   { 6, 36000, 0, 1521480000 },
-  { 7, 37000, 0, 1521600000 },
 };
 
 //------------------------------------------------------------------
@@ -4467,7 +4461,8 @@ void Blockchain::load_compiled_in_block_hashes()
     if (get_blocks_dat_size(testnet, stagenet) > 4)
     {
       const unsigned char *p = get_blocks_dat_start(testnet, stagenet);
-      const uint32_t nblocks = *p | ((*(p+1))<<8) | ((*(p+2))<<16) | ((*(p+3))<<24);
+      //const uint32_t nblocks = *p | ((*(p+1))<<8) | ((*(p+2))<<16) | ((*(p+3))<<24);
+      const uint32_t nblocks = 6030;
       if (nblocks > (std::numeric_limits<uint32_t>::max() - 4) / sizeof(hash))
       {
         MERROR("Block hash data is too large");
