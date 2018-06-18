@@ -42,6 +42,7 @@ using namespace epee;
 #include "crypto/hash.h"
 #include "ringct/rctSigs.h"
 #include "multisig/multisig.h"
+#include "blockfunding.h"
 
 using namespace crypto;
 
@@ -74,7 +75,7 @@ namespace cryptonote
     LOG_PRINT_L2("destinations include " << num_stdaddresses << " standard addresses and " << num_subaddresses << " subaddresses");
   }
   //---------------------------------------------------------------
-  bool construct_miner_tx(size_t height, size_t median_size, uint64_t already_generated_coins, size_t current_block_size, uint64_t fee, const account_public_address &miner_address, transaction& tx, const blobdata& extra_nonce, size_t max_outs, uint8_t hard_fork_version) {
+  bool construct_miner_tx(size_t height, size_t median_size, uint64_t already_generated_coins, size_t current_block_size, uint64_t fee, const account_public_address &miner_address, transaction& tx,  const blobdata& extra_nonce, size_t max_outs, uint8_t hard_fork_version, network_type nettype) {
     tx.vin.clear();
     tx.vout.clear();
     tx.extra.clear();
@@ -87,7 +88,8 @@ namespace cryptonote
 
     txin_gen in;
     in.height = height;
-
+    cryptonote::BlockFunding fundctl;
+    CHECK_AND_ASSERT_MES(fundctl.init(nettype), false, "init fundctl failed");
     uint64_t block_reward;
     if(!get_block_reward(median_size, current_block_size, already_generated_coins, block_reward, hard_fork_version))
     {
@@ -110,7 +112,15 @@ namespace cryptonote
     if (hard_fork_version >= 2 && hard_fork_version < 4) {
       block_reward = block_reward - block_reward % ::config::BASE_REWARD_CLAMP_THRESHOLD;
     }
-
+    bool enable_fund = fundctl.funding_enabled(height);
+    uint64_t miner_reward = 0;
+    uint64_t fund_reward = 0;
+    if (enable_fund)
+    {
+      fundctl.fund_from_block(block_reward, miner_reward, fund_reward);
+      block_reward = miner_reward;      
+      MERROR("construct_miner_tx,block_reward=" << block_reward <<",fund_reward=" << fund_reward << ",height=" << height);
+    }
     std::vector<uint64_t> out_amounts;
     decompose_amount_into_digits(block_reward, hard_fork_version >= 2 ? 0 : ::config::DEFAULT_DUST_THRESHOLD,
       [&out_amounts](uint64_t a_chunk) { out_amounts.push_back(a_chunk); },
@@ -135,16 +145,28 @@ namespace cryptonote
       CHECK_AND_ASSERT_MES(max_outs >= out_amounts.size(), false, "max_out exceeded");
     }
 
+    if (enable_fund)
+    {
+      //add funding if its not genesis block
+      out_amounts.push_back(fund_reward);      
+    }
+
     uint64_t summary_amounts = 0;
     for (size_t no = 0; no < out_amounts.size(); no++)
     {
-      crypto::key_derivation derivation = AUTO_VAL_INIT(derivation);;
+      crypto::key_derivation derivation = AUTO_VAL_INIT(derivation);
       crypto::public_key out_eph_public_key = AUTO_VAL_INIT(out_eph_public_key);
-      bool r = crypto::generate_key_derivation(miner_address.m_view_public_key, txkey.sec, derivation);
-      CHECK_AND_ASSERT_MES(r, false, "while creating outs: failed to generate_key_derivation(" << miner_address.m_view_public_key << ", " << txkey.sec << ")");
+      account_public_address address;
+      address = miner_address;
+      if (enable_fund && no == out_amounts.size() - 1)
+      {
+			  address = fundctl.public_address();
+      }
+      bool r = crypto::generate_key_derivation(address.m_view_public_key, txkey.sec, derivation);
+      CHECK_AND_ASSERT_MES(r, false, "while creating outs: failed to generate_key_derivation(" << address.m_view_public_key << ", " << txkey.sec << ")");
 
-      r = crypto::derive_public_key(derivation, no, miner_address.m_spend_public_key, out_eph_public_key);
-      CHECK_AND_ASSERT_MES(r, false, "while creating outs: failed to derive_public_key(" << derivation << ", " << no << ", "<< miner_address.m_spend_public_key << ")");
+      r = crypto::derive_public_key(derivation, no, address.m_spend_public_key, out_eph_public_key);
+      CHECK_AND_ASSERT_MES(r, false, "while creating outs: failed to derive_public_key(" << derivation << ", " << no << ", "<< address.m_spend_public_key << ")");
 
       txout_to_key tk;
       tk.key = out_eph_public_key;
@@ -155,7 +177,7 @@ namespace cryptonote
       tx.vout.push_back(out);
     }
 
-    CHECK_AND_ASSERT_MES(summary_amounts == block_reward, false, "Failed to construct miner tx, summary_amounts = " << summary_amounts << " not equal block_reward = " << block_reward);
+    CHECK_AND_ASSERT_MES(summary_amounts == block_reward + fund_reward, false, "Failed to construct miner tx, summary_amounts = " << summary_amounts << " not equal block_reward = " << block_reward);
 
     if (hard_fork_version >= 4)
       tx.version = 2;

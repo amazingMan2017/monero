@@ -52,6 +52,7 @@
 #include "cryptonote_core.h"
 #include "ringct/rctSigs.h"
 #include "common/perf_timer.h"
+#include "blockfunding.h"
 #if defined(PER_BLOCK_CHECKPOINT)
 #include "blocks/blocks.h"
 #endif
@@ -341,8 +342,7 @@ bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline
     return false;
   }
 
-  m_db = db;
-
+  m_db = db;  
   m_nettype = test_options != NULL ? FAKECHAIN : nettype;
   m_offline = offline;
   if (m_hardfork == nullptr)
@@ -1115,7 +1115,19 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
       }
     }
   }
-
+  uint64_t height = boost::get<txin_gen>(b.miner_tx.vin[0]).height;
+  uint64_t funding_amount = 0;
+  uint64_t miner_reward_amount = 0;
+  cryptonote::BlockFunding fundctl;
+  CHECK_AND_ASSERT_MES(fundctl.init(m_nettype), false, "init fundctl failed");
+  if (fundctl.funding_enabled(height))
+  {
+		//funding, added by zorroii, 2018-5-10
+		//no funding for genesis block
+    bool ret = fundctl.get_funding_from_miner_tx(b.miner_tx, funding_amount);
+    CHECK_AND_ASSERT_MES(ret, false, "validate funding failed");
+    miner_reward_amount = money_in_use - funding_amount;
+  }
   std::vector<size_t> last_blocks_sizes;
   get_last_n_blocks_sizes(last_blocks_sizes, CRYPTONOTE_REWARD_BLOCKS_WINDOW);
   if (!get_block_reward(epee::misc_utils::median(last_blocks_sizes), cumulative_block_size, already_generated_coins, base_reward, version))
@@ -1146,6 +1158,13 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
     if(base_reward + fee != money_in_use)
       partial_block_reward = true;
     base_reward = money_in_use - fee;
+  }
+  // check funding
+  if (fundctl.funding_enabled(height))
+  {
+    bool ret = fundctl.check_block_funding(miner_reward_amount, funding_amount, base_reward + fee);
+    MERROR_VER("miner_reward_amount=" << miner_reward_amount << ", funding_amount=" << funding_amount << ", money_in_use=" << (base_reward + fee));
+    CHECK_AND_ASSERT_MES(ret, false, "check reward failed");
   }
   return true;
 }
@@ -1290,7 +1309,7 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
   //make blocks coin-base tx looks close to real coinbase tx to get truthful blob size
   uint8_t hf_version = m_hardfork->get_current_version();
   size_t max_outs = hf_version >= 4 ? 1 : 11;
-  bool r = construct_miner_tx(height, median_size, already_generated_coins, txs_size, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version);
+  bool r = construct_miner_tx(height, median_size, already_generated_coins, txs_size, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version, m_nettype);
   CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, first chance");
   size_t cumulative_size = txs_size + get_object_blobsize(b.miner_tx);
 #if defined(DEBUG_CREATE_BLOCK_TEMPLATE)
@@ -1299,7 +1318,7 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
 #endif
   for (size_t try_count = 0; try_count != 10; ++try_count)
   {
-    r = construct_miner_tx(height, median_size, already_generated_coins, cumulative_size, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version);
+    r = construct_miner_tx(height, median_size, already_generated_coins, cumulative_size, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version, m_nettype);
 
     CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, second chance");
     size_t coinbase_blob_size = get_object_blobsize(b.miner_tx);
