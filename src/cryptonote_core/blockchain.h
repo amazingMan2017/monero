@@ -54,6 +54,7 @@
 #include "checkpoints/checkpoints.h"
 #include "cryptonote_basic/hardfork.h"
 #include "blockchain_db/blockchain_db.h"
+#include "blockfunding.h"
 
 namespace cryptonote
 {
@@ -980,10 +981,9 @@ namespace cryptonote
     BlockchainDB* m_db;
 
     tx_memory_pool& m_tx_pool;
-
     mutable epee::critical_section m_blockchain_lock; // TODO: add here reader/writer lock
 
-    // main chain
+    // main chain    
     transactions_container m_transactions;
     size_t m_current_block_cumul_sz_limit;
     size_t m_current_block_cumul_sz_median;
