@@ -30,7 +30,8 @@ set(cryptonote_core_sources
   blockchain.cpp
   cryptonote_core.cpp
   tx_pool.cpp
-  cryptonote_tx_utils.cpp)
+  cryptonote_tx_utils.cpp
+  blockfunding.cpp)
 
 set(cryptonote_core_headers)
 
@@ -39,7 +40,8 @@ set(cryptonote_core_private_headers
   blockchain.h
   cryptonote_core.h
   tx_pool.h
-  cryptonote_tx_utils.h)
+  cryptonote_tx_utils.h
+  blockfunding.h)
 
 if(PER_BLOCK_CHECKPOINT)
   set(Blocks "blocks")
