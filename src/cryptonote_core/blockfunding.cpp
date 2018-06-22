@@ -31,7 +31,9 @@
 #include "blockfunding.h"
 #include "include_base_utils.h"
 // height to enable monero block funding
-#define MONERO_ENABLE_FUNDING_HEIGHT 10
+#define MONERO_ENABLE_FUNDING_HEIGHT_MAINNET 15
+#define MONERO_ENABLE_FUNDING_HEIGHT_STAGENET 15
+#define MONERO_ENABLE_FUNDING_HEIGHT_TESTNET 1162100
 #define MONERO_BLOCK_FUNDING_RATE 0.1
 using namespace cryptonote;
 using namespace std;
@@ -97,7 +99,19 @@ bool BlockFunding::get_funding_address_and_key(account_keys& funding_keys)
 
 bool BlockFunding::funding_enabled(uint64_t height)
 {
-    return height >= MONERO_ENABLE_FUNDING_HEIGHT;
+    if(m_network_type == MAINNET)
+    {
+        return height >= MONERO_ENABLE_FUNDING_HEIGHT_MAINNET;
+    }
+    else if(m_network_type == STAGENET)
+    {
+        return height >= MONERO_ENABLE_FUNDING_HEIGHT_STAGENET;
+    }
+    else if(m_network_type == TESTNET)
+    {
+        return height >= MONERO_ENABLE_FUNDING_HEIGHT_TESTNET;
+    }
+    return false;    
 }
 
 bool BlockFunding::fund_from_block(uint64_t original_reward, uint64_t& miner_reward, uint64_t& funding)
