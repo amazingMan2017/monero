@@ -126,7 +126,6 @@ bool BlockFunding::check_block_funding(uint64_t actual_miner_reward, uint64_t ac
 {
     uint64_t real_miner_reward, real_funding;
     fund_from_block(real_reward, real_miner_reward, real_funding);
-    MERROR("actual_miner_reward=" << actual_miner_reward << ",real_miner_reward=" << real_miner_reward << ",actual_funding="<<actual_funding<<",real_funding="<<real_funding);
     return (actual_miner_reward == real_miner_reward) && (actual_funding == real_funding);
 }
 
