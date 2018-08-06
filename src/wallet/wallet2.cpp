@@ -5339,7 +5339,7 @@ int wallet2::get_fee_algorithm() const
 //------------------------------------------------------------------------------------------------------------------------------
 uint64_t wallet2::adjust_mixin(uint64_t mixin) const
 {
-  if (mixin < 6 && funding_enabled(2)) {
+  if (mixin < 7 && funding_enabled(2)) {
     MWARNING("Requested ring size " << (mixin + 1) << " too low after funding_enabled, using 8");
     mixin = 7;
   }
