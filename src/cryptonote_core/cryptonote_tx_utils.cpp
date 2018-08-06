@@ -119,7 +119,6 @@ namespace cryptonote
     {
       fundctl.fund_from_block(block_reward, miner_reward, fund_reward);
       block_reward = miner_reward;      
-      MERROR("construct_miner_tx,block_reward=" << block_reward <<",fund_reward=" << fund_reward << ",height=" << height);
     }
     std::vector<uint64_t> out_amounts;
     decompose_amount_into_digits(block_reward, hard_fork_version >= 2 ? 0 : ::config::DEFAULT_DUST_THRESHOLD,
