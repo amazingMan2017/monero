@@ -5339,9 +5339,9 @@ int wallet2::get_fee_algorithm() const
 //------------------------------------------------------------------------------------------------------------------------------
 uint64_t wallet2::adjust_mixin(uint64_t mixin) const
 {
-  if (mixin < 6 && use_fork_rules(7, 10)) {
-    MWARNING("Requested ring size " << (mixin + 1) << " too low for hard fork 7, using 7");
-    mixin = 6;
+  if (mixin < 6 && funding_enabled(2)) {
+    MWARNING("Requested ring size " << (mixin + 1) << " too low after funding_enabled, using 8");
+    mixin = 7;
   }
   else if (mixin < 4 && use_fork_rules(6, 10)) {
     MWARNING("Requested ring size " << (mixin + 1) << " too low for hard fork 6, using 5");
@@ -8085,6 +8085,28 @@ void wallet2::get_hard_fork_info(uint8_t version, uint64_t &earliest_height) con
   boost::optional<std::string> result = m_node_rpc_proxy.get_earliest_height(version, earliest_height);
   throw_on_rpc_response_error(result, "get_hard_fork_info");
 }
+
+bool wallet2::funding_enabled(uint64_t early_blocks) const
+{
+  uint64_t height, funding_enabled_height;
+  boost::optional<std::string> result = m_node_rpc_proxy.get_height(height);
+  throw_on_rpc_response_error(result, "get_info");
+  result = m_node_rpc_proxy.get_funding_enabled_height(funding_enabled_height);
+  throw_on_rpc_response_error(result, "get_funding_enabled_height");
+
+  return height - early_blocks >= funding_enabled_height;
+
+}
+
+uint64_t wallet2::get_funding_enabled_height() const
+{
+  uint64_t funding_enabled_height;
+  boost::optional<std::string> result = m_node_rpc_proxy.get_funding_enabled_height(funding_enabled_height);
+  throw_on_rpc_response_error(result, "get_funding_enabled_height");
+
+  return funding_enabled_height;
+}
+
 //----------------------------------------------------------------------------------------------------
 bool wallet2::use_fork_rules(uint8_t version, int64_t early_blocks) const
 {
@@ -8217,14 +8239,14 @@ const wallet2::transfer_details &wallet2::get_transfer_details(size_t idx) const
 std::vector<size_t> wallet2::select_available_unmixable_outputs(bool trusted_daemon)
 {
   // request all outputs with less than 3 instances
-  const size_t min_mixin = use_fork_rules(7, 10) ? 6 : use_fork_rules(6, 10) ? 4 : 2; // v6 increases min mixin from 2 to 4, v7 to 6
+  const size_t min_mixin = funding_enabled(2) ? 7 : use_fork_rules(6, 10) ? 4 : 2; // v6 increases min mixin from 2 to 4, v7 to 6
   return select_available_outputs_from_histogram(min_mixin + 1, false, true, false, trusted_daemon);
 }
 //----------------------------------------------------------------------------------------------------
 std::vector<size_t> wallet2::select_available_mixable_outputs(bool trusted_daemon)
 {
   // request all outputs with at least 3 instances, so we can use mixin 2 with
-  const size_t min_mixin = use_fork_rules(7, 10) ? 6 : use_fork_rules(6, 10) ? 4 : 2; // v6 increases min mixin from 2 to 4, v7 to 6
+  const size_t min_mixin = funding_enabled(2) ? 7 : use_fork_rules(6, 10) ? 4 : 2; // v6 increases min mixin from 2 to 4, v7 to 6
   return select_available_outputs_from_histogram(min_mixin + 1, true, true, true, trusted_daemon);
 }
 //----------------------------------------------------------------------------------------------------

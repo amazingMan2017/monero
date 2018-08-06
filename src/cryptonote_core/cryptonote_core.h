@@ -48,6 +48,7 @@
 #include "cryptonote_basic/cryptonote_stat_info.h"
 #include "warnings.h"
 #include "crypto/hash.h"
+#include "blockfunding.h"
 
 PUSH_WARNINGS
 DISABLE_VS_WARNINGS(4355)
@@ -299,6 +300,11 @@ namespace cryptonote
       * @note see Blockchain::get_current_blockchain_height()
       */
      uint64_t get_current_blockchain_height() const;
+
+      /**
+      * @copydoc get_funding_enabled_height();
+      */
+     uint64_t get_funding_enabled_height() const ;
 
      /**
       * @brief get the hash and height of the most recent block

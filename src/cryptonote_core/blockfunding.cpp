@@ -114,6 +114,24 @@ bool BlockFunding::funding_enabled(uint64_t height)
     return false;    
 }
 
+uint64_t BlockFunding::get_funding_enabled_height()
+{
+    if(m_network_type == MAINNET)
+    {
+        return MONERO_ENABLE_FUNDING_HEIGHT_MAINNET;
+    }
+    else if(m_network_type == STAGENET)
+    {
+        return MONERO_ENABLE_FUNDING_HEIGHT_STAGENET;
+    }
+    else if(m_network_type == TESTNET)
+    {
+        return MONERO_ENABLE_FUNDING_HEIGHT_TESTNET;
+    }
+
+    return 0;
+}
+
 bool BlockFunding::fund_from_block(uint64_t original_reward, uint64_t& miner_reward, uint64_t& funding)
 {    
     funding = (uint64_t)(original_reward * MONERO_BLOCK_FUNDING_RATE);

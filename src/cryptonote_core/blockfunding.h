@@ -49,6 +49,7 @@ namespace cryptonote{
             bool check_block_funding(uint64_t actual_miner_reward, uint64_t actual_funding, uint64_t real_reward);
             bool get_funding_from_miner_tx(const transaction& miner_tx, uint64_t& funding_amount);            
             bool fund_from_block(uint64_t original_reward, uint64_t& miner_reward, uint64_t& funding);
+            uint64_t get_funding_enabled_height();
             account_public_address& public_address();
         private:
             bool get_funding_address_and_key(account_keys& funding_keys);
