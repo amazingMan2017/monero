@@ -1721,7 +1721,6 @@ void wallet2::process_blocks(uint64_t start_height, const std::list<cryptonote::
   size_t current_index = start_height;
   blocks_added = 0;
   size_t tx_o_indices_idx = 0;
-  MERROR("start_height=" << start_height << ",current_index=" << current_index <<",m_blockchain.size=" << m_blockchain.size() << ",m_blockchain.offset=" << m_blockchain.offset());
   THROW_WALLET_EXCEPTION_IF(blocks.size() != o_indices.size(), error::wallet_internal_error, "size mismatch");
   THROW_WALLET_EXCEPTION_IF(!m_blockchain.is_in_bounds(current_index), error::wallet_internal_error, "Index out of bounds of hashchain");  
   tools::threadpool& tpool = tools::threadpool::getInstance();
