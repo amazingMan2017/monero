@@ -1158,10 +1158,10 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
         // additional tx pubkeys and derivations for multi-destination transfers involving one or more subaddresses
         if (find_tx_extra_field_by_type(tx_extra_fields, additional_tx_pub_keys))
         {
-            for (size_t i = 0; i < additional_tx_pub_keys.data.size(); ++i)
+            for (size_t i = 0; i < additional_tx_pub_keys.size(); ++i)
             {
                 additional_derivations.push_back({});
-                if (!hwdev.generate_key_derivation(additional_tx_pub_keys.data[i], keys.m_view_secret_key, additional_derivations.back()))
+                if (!hwdev.generate_key_derivation(additional_tx_pub_keys[i], keys.m_view_secret_key, additional_derivations.back()))
                 {
                     MWARNING("Failed to generate key derivation from additional tx pubkey in " << txid << ", skipping");
                     memcpy(&additional_derivations.back(), rct::identity().bytes, sizeof(crypto::key_derivation));
