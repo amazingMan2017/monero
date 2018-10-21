@@ -245,6 +245,7 @@ Tested on a Raspberry Pi 2 with a clean install of minimal Debian Jessie from ht
 
 * Change to the root of the source code directory and build:
 ```
+        git clone --recursive https://github.com/monero-classic/monero.git
         cd monero
         make release
 ```
