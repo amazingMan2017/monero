@@ -1123,7 +1123,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
         break;
       LOG_PRINT_L0("Public key wasn't found in the transaction extra. Skipping transaction " << txid);
       if(0 != m_callback)
-	m_callback->on_skip_transaction(height, txid, tx);
+	      m_callback->on_skip_transaction(height, txid, tx);
       break;
     }
 
@@ -1151,19 +1151,24 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
     }
 
     // additional tx pubkeys and derivations for multi-destination transfers involving one or more subaddresses
-    std::vector<crypto::public_key> additional_tx_pub_keys = get_additional_tx_pub_keys_from_extra(tx);
+    // std::vector<crypto::public_key> additional_tx_pub_keys = get_additional_tx_pub_keys_from_extra(tx);
     std::vector<crypto::key_derivation> additional_derivations;
+    tx_extra_additional_pub_keys additional_tx_pub_keys;
     if(pk_index == 1)
     {
-	    for (size_t i = 0; i < additional_tx_pub_keys.size(); ++i)
-	    {
-		    additional_derivations.push_back({});
-		    if (!hwdev.generate_key_derivation(additional_tx_pub_keys[i], keys.m_view_secret_key, additional_derivations.back()))
-		    {
-			    MWARNING("Failed to generate key derivation from additional tx pubkey in " << txid << ", skipping");
-			    additional_derivations.pop_back();
-		    }
-	    }
+      if (find_tx_extra_field_by_type(tx_extra_fields, additional_tx_pub_keys))
+      {
+        for (size_t i = 0; i < additional_tx_pub_keys.data.size(); ++i)
+        {
+          additional_derivations.push_back({});
+          if (!hwdev.generate_key_derivation(additional_tx_pub_keys.data[i], keys.m_view_secret_key, additional_derivations.back()))
+          {
+            MWARNING("Failed to generate key derivation from additional tx pubkey in " << txid << ", skipping");
+            // additional_derivations.pop_back();
+            memcpy(&additional_derivations.back(), rct::identity().bytes, sizeof(crypto::key_derivation));
+          }
+        }
+      }
     }
     hwdev_lock.unlock();
 
@@ -1198,7 +1203,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
           THROW_WALLET_EXCEPTION_IF(tx_scan_info[i].error, error::acc_outs_lookup_error, tx, tx_pub_key, m_account.get_keys());
           if (tx_scan_info[i].received)
           {
-            hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
+            hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys.data, derivation, additional_derivations);
             scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, outs);
           }
         }
@@ -1221,7 +1226,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
         THROW_WALLET_EXCEPTION_IF(tx_scan_info[i].error, error::acc_outs_lookup_error, tx, tx_pub_key, m_account.get_keys());
         if (tx_scan_info[i].received)
         {
-          hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
+          hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys.data, derivation, additional_derivations);
           scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, outs);
         }
       }
@@ -1237,7 +1242,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
         {
           hwdev_lock.lock();
           hwdev.set_mode(hw::device::NONE);
-          hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
+          hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys.data, derivation, additional_derivations);
           scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, outs);
           hwdev_lock.unlock();
         }
@@ -1733,7 +1738,7 @@ void wallet2::process_blocks(uint64_t start_height, const std::list<cryptonote::
   blocks_added = 0;
   size_t tx_o_indices_idx = 0;
   THROW_WALLET_EXCEPTION_IF(blocks.size() != o_indices.size(), error::wallet_internal_error, "size mismatch");
-  THROW_WALLET_EXCEPTION_IF(!m_blockchain.is_in_bounds(current_index), error::wallet_internal_error, "Index out of bounds of hashchain");  
+  THROW_WALLET_EXCEPTION_IF(!m_blockchain.is_in_bounds(current_index), error::out_of_hashchain_bounds_error);  
   tools::threadpool& tpool = tools::threadpool::getInstance();
   int threads = tpool.get_max_concurrency();
   if (threads > 1)
@@ -2286,6 +2291,7 @@ void wallet2::refresh(uint64_t start_height, uint64_t & blocks_fetched, bool& re
       std::list<cryptonote::block_complete_entry> next_blocks;
       std::vector<cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::block_output_indices> next_o_indices;
       bool error = false;
+      added_blocks = 0;
       if (blocks.empty())
       {
         refreshed = false;
@@ -2293,7 +2299,20 @@ void wallet2::refresh(uint64_t start_height, uint64_t & blocks_fetched, bool& re
       }
       tpool.submit(&waiter, [&]{pull_next_blocks(start_height, next_blocks_start_height, short_chain_history, blocks, next_blocks, next_o_indices, error);});
 
-      process_blocks(blocks_start_height, blocks, o_indices, added_blocks);
+      try
+      {
+        process_blocks(blocks_start_height, blocks, o_indices, added_blocks);
+      }
+      catch(const tools::error::out_of_hashchain_bounds_error)
+      {
+        MINFO("Daemon claims next refresh block is out of hash chain bounds, resetting hash chain");
+        cryptonote::block b;
+        generate_genesis(b);
+        m_blockchain.clear();
+        m_blockchain.push_back(get_block_hash(b));
+        throw std::runtime_error(""); // loop again
+      }
+      
       blocks_fetched += added_blocks;
       waiter.wait();
       if(blocks_start_height == next_blocks_start_height)
