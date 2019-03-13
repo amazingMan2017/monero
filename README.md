@@ -179,6 +179,7 @@ invokes cmake commands as needed.
 #### On Linux and OS X
 
 * Install the dependencies
+  install zmq and zmq.hpp : `https://github.com/zeromq/cppzmq`
 * Change to the root of the source code directory and build:
 
         cd monero
