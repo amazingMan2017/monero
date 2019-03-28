@@ -523,6 +523,63 @@ namespace wallet_rpc
     };
   };
 
+  struct COMMAND_RPC_SIGN_TRANSFER
+  {
+    struct request
+    {
+      std::string unsigned_txset;
+      bool export_raw;
+      bool get_tx_keys;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(unsigned_txset)
+        KV_SERIALIZE_OPT(export_raw, false)
+        KV_SERIALIZE_OPT(get_tx_keys, false)
+      END_KV_SERIALIZE_MAP()
+    };
+    //typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response
+    {
+      std::string signed_txset;
+      std::list<std::string> tx_hash_list;
+      std::list<std::string> tx_raw_list;
+      std::list<std::string> tx_key_list;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(signed_txset)
+        KV_SERIALIZE(tx_hash_list)
+        KV_SERIALIZE(tx_raw_list)
+        KV_SERIALIZE(tx_key_list)
+      END_KV_SERIALIZE_MAP()
+    };
+    //typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
+  struct COMMAND_RPC_SUBMIT_TRANSFER
+  {
+    struct request
+    {
+      std::string tx_data_hex;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(tx_data_hex)
+      END_KV_SERIALIZE_MAP()
+    };
+    //typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response
+    {
+      std::list<std::string> tx_hash_list;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(tx_hash_list)
+      END_KV_SERIALIZE_MAP()
+    };
+    //typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
+
   struct COMMAND_RPC_SWEEP_DUST
   {
     struct request
@@ -1388,6 +1445,49 @@ namespace wallet_rpc
         KV_SERIALIZE(good);
       END_KV_SERIALIZE_MAP()
     };
+  };
+
+  struct COMMAND_RPC_EXPORT_OUTPUTS
+  {
+    struct request
+    {
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+    };
+    //typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response
+    {
+      std::string outputs_data_hex;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(outputs_data_hex);
+      END_KV_SERIALIZE_MAP()
+    };
+    //typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
+  struct COMMAND_RPC_IMPORT_OUTPUTS
+  {
+    struct request
+    {
+      std::string outputs_data_hex;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(outputs_data_hex);
+      END_KV_SERIALIZE_MAP()
+    };
+    //typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response
+    {
+      uint64_t num_imported;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(num_imported);
+      END_KV_SERIALIZE_MAP()
+    };
+    //typedef epee::misc_utils::struct_init<response_t> response;
   };
 
   struct COMMAND_RPC_EXPORT_KEY_IMAGES

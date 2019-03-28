@@ -221,6 +221,7 @@ namespace tools
       uint64_t m_amount;
       bool m_rct;
       bool m_key_image_known;
+      bool m_key_image_request; // view wallets: we want to request it; cold wallets: it was requested
       size_t m_pk_index;
       cryptonote::subaddress_index m_subaddr_index;
       bool m_key_image_partial;
@@ -320,6 +321,7 @@ namespace tools
       std::vector<uint8_t> extra;
       uint64_t unlock_time;
       bool use_rct;
+      bool use_bulletproofs;
       std::vector<cryptonote::tx_destination_entry> dests; // original setup, does not include change
       uint32_t subaddr_account;   // subaddress account of your wallet to be used in this transfer
       std::set<uint32_t> subaddr_indices;  // set of address indices used as inputs in this transfer
@@ -396,6 +398,7 @@ namespace tools
     {
       std::vector<pending_tx> ptx;
       std::vector<crypto::key_image> key_images;
+      std::unordered_map<crypto::public_key, crypto::key_image> tx_key_images;
     };
 
     struct multisig_tx_set
@@ -693,8 +696,12 @@ namespace tools
     bool sign_tx(const std::string &unsigned_filename, const std::string &signed_filename, std::vector<wallet2::pending_tx> &ptx, std::function<bool(const unsigned_tx_set&)> accept_func = NULL, bool export_raw = false);
     // sign unsigned tx. Takes unsigned_tx_set as argument. Used by GUI
     bool sign_tx(unsigned_tx_set &exported_txs, const std::string &signed_filename, std::vector<wallet2::pending_tx> &ptx, bool export_raw = false);
+    bool sign_tx(unsigned_tx_set &exported_txs, std::vector<wallet2::pending_tx> &ptx, signed_tx_set &signed_txs);
+    std::string sign_tx_dump_to_str(unsigned_tx_set &exported_txs, std::vector<wallet2::pending_tx> &ptx, signed_tx_set &signed_txes);
+    bool parse_tx_from_str(const std::string &signed_tx_st, std::vector<tools::wallet2::pending_tx> &ptx, std::function<bool(const signed_tx_set &)> accept_func);
     // load unsigned_tx_set from file. 
     bool load_unsigned_tx(const std::string &unsigned_filename, unsigned_tx_set &exported_txs) const;
+    bool parse_unsigned_tx_from_str(const std::string &unsigned_tx_st, unsigned_tx_set &exported_txs) const;
     bool load_tx(const std::string &signed_filename, std::vector<tools::wallet2::pending_tx> &ptx, std::function<bool(const signed_tx_set&)> accept_func = NULL);
     std::vector<pending_tx> create_transactions(std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, bool trusted_daemon);
     std::vector<wallet2::pending_tx> create_transactions_2(std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon);     // pass subaddr_indices by value on purpose
@@ -822,6 +829,7 @@ namespace tools
       if(ver < 24)
         return;
       a & m_ring_history_saved;
+      a & m_cold_key_images;
     }
 
     /*!
@@ -974,7 +982,10 @@ namespace tools
 
     // Import/Export wallet data
     std::vector<tools::wallet2::transfer_details> export_outputs() const;
+    std::string export_outputs_to_str() const;
     size_t import_outputs(const std::vector<tools::wallet2::transfer_details> &outputs);
+    size_t import_outputs(const std::pair<size_t, std::vector<tools::wallet2::transfer_details>> &outputs);
+    size_t import_outputs_from_str(const std::string &outputs_st);
     payment_container export_payments() const;
     void import_payments(const payment_container &payments);
     void import_payments_out(const std::list<std::pair<crypto::hash,wallet2::confirmed_transfer_details>> &confirmed_payments);
@@ -984,6 +995,7 @@ namespace tools
     std::vector<std::pair<crypto::key_image, crypto::signature>> export_key_images() const;
     uint64_t import_key_images(const std::vector<std::pair<crypto::key_image, crypto::signature>> &signed_key_images, uint64_t &spent, uint64_t &unspent, bool check_spent = true);
     uint64_t import_key_images(const std::string &filename, uint64_t &spent, uint64_t &unspent);
+    bool import_key_images(std::vector<crypto::key_image> key_images);
 
     void update_pool_state(bool refreshed = false);
     void remove_obsolete_pool_txs(const std::vector<crypto::hash> &tx_hashes);
@@ -1175,6 +1187,7 @@ namespace tools
     uint64_t m_upper_transaction_size_limit; //TODO: auto-calc this value or request from daemon, now use some fixed value
     const std::vector<std::vector<tools::wallet2::multisig_info>> *m_multisig_rescan_info;
     const std::vector<std::vector<rct::key>> *m_multisig_rescan_k;
+    std::unordered_map<crypto::public_key, crypto::key_image> m_cold_key_images;
 
     std::atomic<bool> m_run;
 
@@ -1566,6 +1579,7 @@ namespace boost
     {
       a & x.ptx;
       a & x.key_images;
+      a & x.tx_key_images;
     }
 
     template <class Archive>

@@ -885,6 +885,148 @@ namespace tools
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+  bool wallet_rpc_server::on_sign_transfer(const wallet_rpc::COMMAND_RPC_SIGN_TRANSFER::request& req, wallet_rpc::COMMAND_RPC_SIGN_TRANSFER::response& res, epee::json_rpc::error& er, const connection_context *ctx)
+  {
+    if (!m_wallet) return not_open(er);
+    if (m_wallet->restricted())
+    {
+      er.code = WALLET_RPC_ERROR_CODE_DENIED;
+      er.message = "Command unavailable in restricted mode.";
+      return false;
+    }
+    if (m_wallet->key_on_device())
+    {
+      er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+      er.message = "command not supported by HW wallet";
+      return false;
+    }
+    if(m_wallet->watch_only())
+    {
+      er.code = WALLET_RPC_ERROR_CODE_WATCH_ONLY;
+      er.message = "command not supported by watch-only wallet";
+      return false;
+    }
+
+    cryptonote::blobdata blob;
+    if (!epee::string_tools::parse_hexstr_to_binbuff(req.unsigned_txset, blob))
+    {
+      er.code = WALLET_RPC_ERROR_CODE_BAD_HEX;
+      er.message = "Failed to parse hex.";
+      return false;
+    }
+
+    tools::wallet2::unsigned_tx_set exported_txs;
+    if(!m_wallet->parse_unsigned_tx_from_str(blob, exported_txs))
+    {
+      er.code = WALLET_RPC_ERROR_CODE_BAD_UNSIGNED_TX_DATA;
+      er.message = "cannot load unsigned_txset";
+      return false;
+    }
+
+    std::vector<tools::wallet2::pending_tx> ptxs;
+    try
+    {
+      tools::wallet2::signed_tx_set signed_txs;
+      std::string ciphertext = m_wallet->sign_tx_dump_to_str(exported_txs, ptxs, signed_txs);
+      if (ciphertext.empty())
+      {
+        er.code = WALLET_RPC_ERROR_CODE_SIGN_UNSIGNED;
+        er.message = "Failed to sign unsigned tx";
+        return false;
+      }
+
+      res.signed_txset = epee::string_tools::buff_to_hex_nodelimer(ciphertext);
+    }
+    catch (const std::exception &e)
+    {
+      er.code = WALLET_RPC_ERROR_CODE_SIGN_UNSIGNED;
+      er.message = std::string("Failed to sign unsigned tx: ") + e.what();
+      return false;
+    }
+
+    for (auto &ptx: ptxs)
+    {
+      res.tx_hash_list.push_back(epee::string_tools::pod_to_hex(cryptonote::get_transaction_hash(ptx.tx)));
+      if (req.get_tx_keys)
+      {
+        res.tx_key_list.push_back(epee::string_tools::pod_to_hex(ptx.tx_key));
+        for (const crypto::secret_key& additional_tx_key : ptx.additional_tx_keys)
+          res.tx_key_list.back() += epee::string_tools::pod_to_hex(additional_tx_key);
+      }
+    }
+
+    if (req.export_raw)
+    {
+      for (auto &ptx: ptxs)
+      {
+        res.tx_raw_list.push_back(epee::string_tools::buff_to_hex_nodelimer(cryptonote::tx_to_blob(ptx.tx)));
+      }
+    }
+
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool wallet_rpc_server::on_submit_transfer(const wallet_rpc::COMMAND_RPC_SUBMIT_TRANSFER::request& req, wallet_rpc::COMMAND_RPC_SUBMIT_TRANSFER::response& res, epee::json_rpc::error& er, const connection_context *ctx)
+  {
+    if (!m_wallet) return not_open(er);
+    if (m_wallet->restricted())
+    {
+      er.code = WALLET_RPC_ERROR_CODE_DENIED;
+      er.message = "Command unavailable in restricted mode.";
+      return false;
+    }
+    if (m_wallet->key_on_device())
+    {
+      er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+      er.message = "command not supported by HW wallet";
+      return false;
+    }
+
+    cryptonote::blobdata blob;
+    if (!epee::string_tools::parse_hexstr_to_binbuff(req.tx_data_hex, blob))
+    {
+      er.code = WALLET_RPC_ERROR_CODE_BAD_HEX;
+      er.message = "Failed to parse hex.";
+      return false;
+    }
+
+    std::vector<tools::wallet2::pending_tx> ptx_vector;
+    try
+    {
+      bool r = m_wallet->parse_tx_from_str(blob, ptx_vector, NULL);
+      if (!r)
+      {
+        er.code = WALLET_RPC_ERROR_CODE_BAD_SIGNED_TX_DATA;
+        er.message = "Failed to parse signed tx data.";
+        return false;
+      }
+    }
+    catch (const std::exception &e)
+    {
+      er.code = WALLET_RPC_ERROR_CODE_BAD_SIGNED_TX_DATA;
+      er.message = std::string("Failed to parse signed tx: ") + e.what();
+      return false;
+    }
+
+    try
+    {
+      for (auto &ptx: ptx_vector)
+      {
+        m_wallet->commit_tx(ptx);
+        res.tx_hash_list.push_back(epee::string_tools::pod_to_hex(cryptonote::get_transaction_hash(ptx.tx)));
+      }
+    }
+    catch (const std::exception &e)
+    {
+      er.code = WALLET_RPC_ERROR_CODE_SIGNED_SUBMISSION;
+      er.message = std::string("Failed to submit signed tx: ") + e.what();
+      return false;
+    }
+
+    return true;
+  }
+
+  //------------------------------------------------------------------------------------------------------------------------------
   bool wallet_rpc_server::on_sweep_dust(const wallet_rpc::COMMAND_RPC_SWEEP_DUST::request& req, wallet_rpc::COMMAND_RPC_SWEEP_DUST::response& res, epee::json_rpc::error& er)
   {
     if (!m_wallet) return not_open(er);
@@ -1989,6 +2131,73 @@ namespace tools
     er.message = "Transaction not found.";
     return false;
   }
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool wallet_rpc_server::on_export_outputs(const wallet_rpc::COMMAND_RPC_EXPORT_OUTPUTS::request& req, wallet_rpc::COMMAND_RPC_EXPORT_OUTPUTS::response& res, epee::json_rpc::error& er, const connection_context *ctx)
+  {
+    if (!m_wallet) return not_open(er);
+    if (m_wallet->restricted())
+    {
+      er.code = WALLET_RPC_ERROR_CODE_DENIED;
+      er.message = "Command unavailable in restricted mode.";
+      return false;
+    }
+    if (m_wallet->key_on_device())
+    {
+      er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+      er.message = "command not supported by HW wallet";
+      return false;
+    }
+
+    try
+    {
+      res.outputs_data_hex = epee::string_tools::buff_to_hex_nodelimer(m_wallet->export_outputs_to_str());
+    }
+    catch (const std::exception &e)
+    {
+      handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR);
+      return false;
+    }
+
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool wallet_rpc_server::on_import_outputs(const wallet_rpc::COMMAND_RPC_IMPORT_OUTPUTS::request& req, wallet_rpc::COMMAND_RPC_IMPORT_OUTPUTS::response& res, epee::json_rpc::error& er, const connection_context *ctx)
+  {
+    if (!m_wallet) return not_open(er);
+    if (m_wallet->restricted())
+    {
+      er.code = WALLET_RPC_ERROR_CODE_DENIED;
+      er.message = "Command unavailable in restricted mode.";
+      return false;
+    }
+    if (m_wallet->key_on_device())
+    {
+      er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+      er.message = "command not supported by HW wallet";
+      return false;
+    }
+
+    cryptonote::blobdata blob;
+    if (!epee::string_tools::parse_hexstr_to_binbuff(req.outputs_data_hex, blob))
+    {
+      er.code = WALLET_RPC_ERROR_CODE_BAD_HEX;
+      er.message = "Failed to parse hex.";
+      return false;
+    }
+
+    try
+    {
+      res.num_imported = m_wallet->import_outputs_from_str(blob);
+    }
+    catch (const std::exception &e)
+    {
+      handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR);
+      return false;
+    }
+
+    return true;
+  }
+
   //------------------------------------------------------------------------------------------------------------------------------
   bool wallet_rpc_server::on_export_key_images(const wallet_rpc::COMMAND_RPC_EXPORT_KEY_IMAGES::request& req, wallet_rpc::COMMAND_RPC_EXPORT_KEY_IMAGES::response& res, epee::json_rpc::error& er)
   {
