@@ -32,3 +32,7 @@ message(STATUS "Using ${ARCH_WIDTH}-bit LMDB from source tree")
 add_subdirectory(liblmdb)
 set(LMDB_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/liblmdb" CACHE STRING "LMDB Include path")
 set(LMDB_LIBRARY "lmdb" CACHE STRING "LMDB Library name")
+
+add_subdirectory(sqlite3)
+set(SQLITE3_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/sqlite3" CACHE STRING "SQLITE3 Include path")
+set(SQLITE3_LIBRARY "sqlite3" CACHE STRING "SQLITE3 Library name")

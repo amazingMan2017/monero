@@ -659,6 +659,20 @@ bool t_command_parser_executor::sync_info(const std::vector<std::string>& args)
   return m_executor.sync_info();
 }
 
+bool t_command_parser_executor::open_statistics(const std::vector<std::string>& args)
+{
+  //if (args.size() != 0) return false;
+
+  return m_executor.open_statistics();
+}
+
+bool t_command_parser_executor::close_statistics(const std::vector<std::string>& args)
+{
+  //if (args.size() != 0) return false;
+
+  return m_executor.close_statistics();
+}
+
 bool t_command_parser_executor::version(const std::vector<std::string>& args)
 {
   std::cout << "Monero '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")" << std::endl;

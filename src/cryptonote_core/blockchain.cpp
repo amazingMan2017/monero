@@ -322,7 +322,7 @@ uint64_t Blockchain::get_current_blockchain_height() const
 //------------------------------------------------------------------
 //FIXME: possibly move this into the constructor, to avoid accidentally
 //       dereferencing a null BlockchainDB pointer
-bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline, const cryptonote::test_options *test_options)
+bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline, const cryptonote::test_options *test_options,bool is_open_statistics)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
   CRITICAL_REGION_LOCAL(m_tx_pool);
@@ -485,6 +485,22 @@ bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline
   }
 
   update_next_cumulative_size_limit();
+
+  if(is_open_statistics)
+  {
+    BlockchainSQLITEDB *db_sqlite = new BlockchainSQLITEDB();
+		std::vector<std::string> mdb_filenames = m_db->get_filenames();
+		std::string mdb_db_filename = mdb_filenames.at(0);
+		boost::filesystem::path path(mdb_db_filename);
+		boost::filesystem::path sqlite_parent_path = path.parent_path();
+		boost::filesystem::path sqlite_db_filename = (sqlite_parent_path /= CRYPTONOTE_STATISTICS_DB_FILENAME);
+
+		LOG_PRINT_L0("sqlite 3 file name is " << sqlite_db_filename.string());
+
+    db_sqlite->open(sqlite_db_filename.string(),SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_CREATE);
+    db_sqlite->open_statistics();
+    this->m_statistics_db = db_sqlite;
+  }
   return true;
 }
 //------------------------------------------------------------------

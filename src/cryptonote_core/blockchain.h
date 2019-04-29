@@ -40,6 +40,7 @@
 #include <atomic>
 #include <unordered_map>
 #include <unordered_set>
+#include <blockchain_db/sqlite3db/db_sqlite3.h>
 
 #include "syncobj.h"
 #include "string_tools.h"
@@ -118,7 +119,7 @@ namespace cryptonote
      *
      * @return true on success, false if any initialization steps fail
      */
-    bool init(BlockchainDB* db, const network_type nettype = MAINNET, bool offline = false, const cryptonote::test_options *test_options = NULL);
+    bool init(BlockchainDB* db, const network_type nettype = MAINNET, bool offline = false, const cryptonote::test_options *test_options = NULL,bool is_open_statistics = false);
 
     /**
      * @brief Initialize the Blockchain state
@@ -907,6 +908,26 @@ namespace cryptonote
     }
 
     /**
+     * @brief get a reference to the BlockchainDB in use by Blockchain
+     *
+     * @return a reference to the BlockchainDB instance
+    */
+    const BlockchainSQLITEDB& get_statistics_db() const
+    {
+      return *m_statistics_db;
+    }
+
+    /**
+     * @brief get a reference to the BlockchainDB in use by Blockchain
+     *
+     * @return a reference to the BlockchainDB instance
+     */
+    BlockchainSQLITEDB& get_statistics_db()
+    {
+      return *m_statistics_db;
+    }
+
+    /**
      * @brief get a number of outputs of a specific amount
      *
      * @param amount the amount
@@ -979,6 +1000,7 @@ namespace cryptonote
 
 
     BlockchainDB* m_db;
+    BlockchainSQLITEDB* m_statistics_db;
 
     tx_memory_pool& m_tx_pool;
     mutable epee::critical_section m_blockchain_lock; // TODO: add here reader/writer lock

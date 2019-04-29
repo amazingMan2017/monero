@@ -152,6 +152,10 @@ public:
   bool relay_tx(const std::string &txid);
 
   bool sync_info();
+
+  bool open_statistics();
+
+  bool close_statistics();
 };
 
 } // namespace daemonize

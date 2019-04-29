@@ -281,10 +281,23 @@ t_command_server::t_command_server(
     , "Print information about the blockchain sync state."
     );
     m_command_lookup.set_handler(
+            "open_statistics"
+            , std::bind(&t_command_parser_executor::open_statistics, &m_parser, p::_1)
+            , "open_statistics"
+            , "open statistics for difficulty and block"
+    );
+		m_command_lookup.set_handler(
+				"close_statistics"
+				, std::bind(&t_command_parser_executor::close_statistics, &m_parser, p::_1)
+				, "close_statistics"
+				, "close statistics for difficulty and block"
+		);
+    m_command_lookup.set_handler(
       "version"
     , std::bind(&t_command_parser_executor::version, &m_parser, p::_1)
     , "Print version information."
     );
+
 }
 
 bool t_command_server::process_command_str(const std::string& cmd)
@@ -363,5 +376,7 @@ std::string t_command_server::get_commands_str()
    }
    return ss.str();
  }
+
+
 
 } // namespace daemonize

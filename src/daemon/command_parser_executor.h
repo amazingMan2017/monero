@@ -139,6 +139,10 @@ public:
 
   bool sync_info(const std::vector<std::string>& args);
 
+  bool open_statistics(const std::vector<std::string>& args);
+
+  bool close_statistics(const std::vector<std::string>& args);
+
   bool version(const std::vector<std::string>& args);
 };
 
