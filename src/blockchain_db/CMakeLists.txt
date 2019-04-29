@@ -38,11 +38,6 @@ if (BERKELEY_DB)
   )
 endif()
 
-set(blockchain_db_sources
-        ${blockchain_db_sources}
-        sqlite3db/db_sqlite3.cpp
-        )
-
 set(blockchain_db_headers)
 
 set(blockchain_db_private_headers
@@ -58,8 +53,7 @@ if (BERKELEY_DB)
 endif()
 
 set(blockchain_db_private_headers
-        ${blockchain_db_private_headers}
-        sqlite3db/db_sqlite3.h)
+        ${blockchain_db_private_headers})
 
 monero_private_headers(blockchain_db
   ${crypto_private_headers})
@@ -74,7 +68,6 @@ target_link_libraries(blockchain_db
     ringct
     ${LMDB_LIBRARY}
     ${BDB_LIBRARY}
-    ${SQLITE3_LIBRARY}
     ${Boost_FILESYSTEM_LIBRARY}
     ${Boost_THREAD_LIBRARY}
   PRIVATE

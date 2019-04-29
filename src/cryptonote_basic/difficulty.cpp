@@ -33,9 +33,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include <misc_log_ex.h>
 
 #include "common/int-util.h"
-#include "blockchain_db/sqlite3db/db_sqlite3.h"
 #include "crypto/hash.h"
 #include "cryptonote_config.h"
 #include "difficulty.h"
@@ -163,7 +163,7 @@ namespace cryptonote {
     return (low + time_span - 1) / time_span;
   }
 
-  difficulty_type next_difficulty_with_statistics(BlockchainSQLITEDB* m_statistics_db,uint64_t blockheight,std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds) {
+    difficulty_type next_difficulty_with_statistics(BlockchainSQLITEDB *db,uint64_t blockheight,std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds) {
 
     if(timestamps.size() > DIFFICULTY_WINDOW)
     {
@@ -203,12 +203,12 @@ namespace cryptonote {
     if (high != 0 || low + time_span - 1 < low) {
       return 0;
     }
-    difficulty_type final_diff = (low + time_span - 1) / time_span;
 
-    //m_statistics_db->insert_next_difficulty(blockheight,time_span,total_work,final_diff);
+    LOG_PRINT_L0("insert next difficulty ");
+		difficulty_type final_difficulty = (low + time_span - 1) / time_span;
+    db->insert_next_difficulty(blockheight,time_span,total_work,final_difficulty);
 
-    return final_diff;
+    return final_difficulty;
   }
-
 
 }

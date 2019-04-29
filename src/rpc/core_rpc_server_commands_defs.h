@@ -33,6 +33,7 @@
 #include "cryptonote_basic/cryptonote_basic.h"
 #include "cryptonote_basic/difficulty.h"
 #include "crypto/hash.h"
+#include <common/db_sqlite3.h>
 
 namespace cryptonote
 {
@@ -2271,6 +2272,47 @@ namespace cryptonote
 			END_KV_SERIALIZE_MAP()
 		};
 	};
+
+  struct COMMAND_RPC_DIFFICULTY_STATISTICS
+  {
+//    struct st_nextdifficulty_statistics
+//    {
+//      uint64_t blockheight;
+//      uint64_t timespan;
+//      uint64_t totalwork;
+//      uint64_t difficulty;
+//      std::string logtime;
+//
+//      BEGIN_KV_SERIALIZE_MAP()
+//        KV_SERIALIZE(blockheight)
+//        KV_SERIALIZE(timespan)
+//        KV_SERIALIZE(totalwork)
+//        KV_SERIALIZE(difficulty)
+//        KV_SERIALIZE(logtime)
+//      END_KV_SERIALIZE_MAP()
+//    };
+
+    struct request
+    {
+      uint64_t from_height;
+      uint64_t to_height;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(from_height)
+        KV_SERIALIZE(to_height)
+      END_KV_SERIALIZE_MAP()
+    };
+    struct response
+    {
+      std::string status;
+      std::vector<st_nextdifficulty_statistics> ns;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(status)
+        KV_SERIALIZE(ns)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
 
   struct COMMAND_RPC_GET_OUTPUT_DISTRIBUTION
   {

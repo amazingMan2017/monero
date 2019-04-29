@@ -2,9 +2,9 @@
 // Created by mac on 2019/4/27.
 //
 
+#include <misc_log_ex.h>
 #include "db_sqlite3.h"
 
-namespace cryptonote{
 
 	void SQLITE_UINT_BIG_THAN( sqlite3_context* ctx,int argc, sqlite3_value** argv )
 	{
@@ -28,7 +28,7 @@ namespace cryptonote{
 
 	std::vector<std::string> statistics_tables_sql =
 	{
-			R"(CREATE TABLE IF NOT EXISTS t_next_block_difficulty (blockheight integer PRIMARY KEY,timespan integer,totalwork integer,difficulty integer,logtime TIMESTAMP default (datetime('now', 'localtime')));)",
+			R"(CREATE TABLE IF NOT EXISTS t_next_block_difficulty (blockheight integer,timespan integer,totalwork integer,difficulty integer,logtime TIMESTAMP default (datetime('now', 'localtime')));)",
 			R"(CREATE TABLE IF NOT EXISTS t_block_create_time (blockheight integer PRIMARY KEY,block_hash varchar(64),block_nonce varchar(64),difficulty integer,create_template_time integer,notify_block_time integer);)"
 	};
 
@@ -50,31 +50,24 @@ namespace cryptonote{
     int ret = sqlite3_open_v2(filename.c_str(),&m_sqlite3_db, mdb_flags,nullptr);
     if(ret != SQLITE_OK)
     {
-			std::cout << "sqlite3 open failed " << std::endl;
+			LOG_ERROR("sqlite3 open failed ");
 			return SQLITE_ERROR;
     }
-		std::cout << "sqlite3 open success " << std::endl;
     //add custom functions
-		sqlite3_create_function(m_sqlite3_db, "SQLITE_UINT_BIG_THAN", 2, SQLITE_ANY, NULL, SQLITE_UINT_BIG_THAN, NULL, NULL);
-		sqlite3_create_function(m_sqlite3_db, "SQLITE_UINT_SMALL_THAN", 2, SQLITE_ANY, NULL, SQLITE_UINT_SMALL_THAN, NULL, NULL);
+		sqlite3_create_function(m_sqlite3_db, "SQLITE_UINT_BIG_THAN", 2, SQLITE_ANY, nullptr, SQLITE_UINT_BIG_THAN, nullptr, nullptr);
+		sqlite3_create_function(m_sqlite3_db, "SQLITE_UINT_SMALL_THAN", 2, SQLITE_ANY, nullptr, SQLITE_UINT_SMALL_THAN, nullptr, nullptr);
 
     for(auto it = statistics_tables_sql.begin();it != statistics_tables_sql.end();++it)
 		{
 			ret= sqlite3_prepare_v2(m_sqlite3_db, it->c_str(), -1, &m_sqlite3_stmt, nullptr);
 			if(ret != SQLITE_OK)
 			{
-				std::cout << "illeagal sql " << *it << std::endl;
+				LOG_ERROR("create sqlite data base failed illeagal sql " << *it << sqlite3_errmsg(m_sqlite3_db));
 				return SQLITE_ERROR;
 			}
 
 			//execute sql
-			ret = sqlite3_step(m_sqlite3_stmt);
-			if(ret != SQLITE_OK)
-			{
-				std::cout << "execute sql " << *it << " failed " << std::endl;
-				return SQLITE_ERROR;
-			}
-			std::cout << "execute sql " << *it << " success " << std::endl;
+			sqlite3_step(m_sqlite3_stmt);
 
 			//finalize the for execute next sql
 			sqlite3_finalize(m_sqlite3_stmt);
@@ -88,11 +81,11 @@ namespace cryptonote{
 		int ret = sqlite3_close_v2(m_sqlite3_db);
 		if(ret != SQLITE_OK)
 		{
-			std::cout << "sqlite3 close failed " << std::endl;
+			LOG_ERROR("sqlite3 close failed ");
 			return SQLITE_ERROR;
 		}
 
-		std::cout << "sqlite3 close success " << std::endl;
+		LOG_PRINT_L1("sqlite3 close success ");
     return SQLITE_OK;
   }
 
@@ -110,7 +103,7 @@ namespace cryptonote{
 			int ret;
 			char* error_msg = nullptr;
 			std::string insert_next_difficulty_sql = "INSERT INTO t_next_block_difficulty(blockheight,timespan,totalwork,difficulty)"
-																								"VALUES(?1, ?2,?3,?4);";
+																								"VALUES(?1,?2,?3,?4);";
 			/**begin transaction*/
 			ret = sqlite3_exec(m_sqlite3_db,"BEGIN TRANSACTION;",nullptr,nullptr,&error_msg);
 			if (ret != SQLITE_OK)
@@ -133,6 +126,7 @@ namespace cryptonote{
 
 				//execute the sql
 				sqlite3_step(m_sqlite3_stmt);
+				LOG_PRINT_L1("insert difficulty sql stepped error msg " << sqlite3_errmsg(m_sqlite3_db));
 				sqlite3_finalize(m_sqlite3_stmt);
 				sqlite3_exec(m_sqlite3_db,"COMMIT;",nullptr,nullptr,&error_msg);
 
@@ -153,16 +147,20 @@ namespace cryptonote{
 		int ret;
 		char* error_msg = nullptr;
 
-		std::string query_nextdifficulty_statistics_sql = "SELECT blockheight,timespan,totalwork,difficulty,logtime FROM t_next_block_difficulty"
-																									 "WHERE SQLITE_UINT_BIG_THAN(blockheight,?1) AND SQLITE_UINT_SMALL_THAN(blockheight,?1)";
+//		std::string query_nextdifficulty_statistics_sql = "SELECT blockheight,timespan,totalwork,difficulty,logtime FROM t_next_block_difficulty"
+//																									 " WHERE SQLITE_UINT_BIG_THAN(blockheight,?1) AND SQLITE_UINT_SMALL_THAN(blockheight,?1)";
 
+		std::string query_nextdifficulty_statistics_sql = "SELECT blockheight,timespan,totalwork,difficulty,logtime FROM t_next_block_difficulty";
+//																											" WHERE blockheight > 1 AND blockheight < 5";
+		LOG_PRINT_L1("query sql is " << query_nextdifficulty_statistics_sql);
 		ret= sqlite3_prepare_v2(m_sqlite3_db, query_nextdifficulty_statistics_sql.c_str(), -1, &m_sqlite3_stmt, nullptr);
 		if (ret == SQLITE_OK) {
+			int rows = 0;
 			LOG_PRINT_L1("query next difficulty statistics prepare sql ok ");
 
 			//bind parameters
-			sqlite3_bind_blob(m_sqlite3_stmt,1,(void*)&from_height,sizeof(from_height), nullptr);
-			sqlite3_bind_blob(m_sqlite3_stmt,2,(void*)&to_height,sizeof(to_height), nullptr);
+			//sqlite3_bind_blob(m_sqlite3_stmt,1,(void*)&from_height,sizeof(from_height), nullptr);
+			//sqlite3_bind_blob(m_sqlite3_stmt,2,(void*)&to_height,sizeof(to_height), nullptr);
 
 			while (sqlite3_step(m_sqlite3_stmt) == SQLITE_ROW) {
 
@@ -186,7 +184,10 @@ namespace cryptonote{
 																			<< ", difficulty = "<< difficulty
 																			<< ", logtime = " << logtime;);
 				results.push_back(ns);
+				rows ++;
 			}
+			LOG_PRINT_L1("get " << rows << " data from t_next_block_difficulty");
+			sqlite3_finalize(m_sqlite3_stmt);
 		}
 		else {
 			LOG_ERROR("query difficulty sql error ret code " << sqlite3_errmsg(m_sqlite3_db));
@@ -328,5 +329,4 @@ namespace cryptonote{
 		return 0;
 	}
 
-}
 

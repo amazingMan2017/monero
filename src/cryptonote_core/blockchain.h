@@ -40,7 +40,7 @@
 #include <atomic>
 #include <unordered_map>
 #include <unordered_set>
-#include <blockchain_db/sqlite3db/db_sqlite3.h>
+#include <common/db_sqlite3.h>
 
 #include "syncobj.h"
 #include "string_tools.h"

@@ -9,16 +9,12 @@
 
 #include <atomic>
 #include <sqlite3.h>
-#include "blockchain_db/blockchain_db.h"
-#include "cryptonote_basic/blobdatatype.h" // for type blobdata
-#include "ringct/rctTypes.h"
-#include "../blockchain_db.h"
-#include <boost/thread/tss.hpp>
 #include <sqlite3.h>
+#include <string>
+#include <serialization/keyvalue_serialization.h>
 
-namespace cryptonote{
 
-typedef struct tag_st_blockcreate_statistics
+struct st_blockcreate_statistics
 {
 	uint64_t  blockheight;
 	uint64_t  difficulty;
@@ -26,16 +22,24 @@ typedef struct tag_st_blockcreate_statistics
 	uint64_t	notify_block_time;
 	std::string block_hash;
 	std::string block_nonce;
-} st_blockcreate_statistics;
+};
 
-typedef struct tag_st_nextdifficulty_statistics
+struct st_nextdifficulty_statistics
 {
 	uint64_t blockheight;
 	uint64_t timespan;
 	uint64_t totalwork;
 	uint64_t difficulty;
 	std::string logtime;
-} st_nextdifficulty_statistics;
+
+	BEGIN_KV_SERIALIZE_MAP()
+		KV_SERIALIZE(blockheight)
+		KV_SERIALIZE(timespan)
+		KV_SERIALIZE(totalwork)
+		KV_SERIALIZE(difficulty)
+		KV_SERIALIZE(logtime)
+	END_KV_SERIALIZE_MAP()
+};
 
 /**
  * just use for statistic
@@ -102,7 +106,6 @@ private:
     sqlite3_stmt *m_sqlite3_stmt;
 
 };
-}
 
 
 

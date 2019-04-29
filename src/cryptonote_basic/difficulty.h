@@ -32,7 +32,7 @@
 
 #include <cstdint>
 #include <vector>
-
+#include <common/db_sqlite3.h>
 #include "crypto/hash.h"
 
 namespace cryptonote
@@ -53,4 +53,5 @@ namespace cryptonote
      */
     bool check_hash(const crypto::hash &hash, difficulty_type difficulty);
     difficulty_type next_difficulty(std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds);
+    difficulty_type next_difficulty_with_statistics(BlockchainSQLITEDB *db,uint64_t blockheight,std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds);
 }

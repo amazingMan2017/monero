@@ -324,7 +324,7 @@ uint64_t Blockchain::get_current_blockchain_height() const
 //       dereferencing a null BlockchainDB pointer
 bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline, const cryptonote::test_options *test_options,bool is_open_statistics)
 {
-  LOG_PRINT_L3("Blockchain::" << __func__);
+  LOG_PRINT_L0("Blockchain::" << __func__);
   CRITICAL_REGION_LOCAL(m_tx_pool);
   CRITICAL_REGION_LOCAL1(m_blockchain_lock);
 
@@ -377,6 +377,22 @@ bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline
 
   m_hardfork->init();  
   m_db->set_hard_fork(m_hardfork);
+
+	if(is_open_statistics)
+	{
+		BlockchainSQLITEDB *db_sqlite = new BlockchainSQLITEDB();
+		std::vector<std::string> mdb_filenames = m_db->get_filenames();
+		std::string mdb_db_filename = mdb_filenames.at(0);
+		boost::filesystem::path path(mdb_db_filename);
+		boost::filesystem::path sqlite_parent_path = path.parent_path();
+		boost::filesystem::path sqlite_db_filename = (sqlite_parent_path /= CRYPTONOTE_STATISTICS_DB_FILENAME);
+
+		LOG_PRINT_L0("sqlite 3 file name is " << sqlite_db_filename.string());
+
+		db_sqlite->open(sqlite_db_filename.string(),SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_CREATE);
+		db_sqlite->open_statistics();
+		this->m_statistics_db = db_sqlite;
+	}
 
   // if the blockchain is new, add the genesis block
   // this feels kinda kludgy to do it this way, but can be looked at later.
@@ -486,21 +502,6 @@ bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline
 
   update_next_cumulative_size_limit();
 
-  if(is_open_statistics)
-  {
-    BlockchainSQLITEDB *db_sqlite = new BlockchainSQLITEDB();
-		std::vector<std::string> mdb_filenames = m_db->get_filenames();
-		std::string mdb_db_filename = mdb_filenames.at(0);
-		boost::filesystem::path path(mdb_db_filename);
-		boost::filesystem::path sqlite_parent_path = path.parent_path();
-		boost::filesystem::path sqlite_db_filename = (sqlite_parent_path /= CRYPTONOTE_STATISTICS_DB_FILENAME);
-
-		LOG_PRINT_L0("sqlite 3 file name is " << sqlite_db_filename.string());
-
-    db_sqlite->open(sqlite_db_filename.string(),SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_CREATE);
-    db_sqlite->open_statistics();
-    this->m_statistics_db = db_sqlite;
-  }
   return true;
 }
 //------------------------------------------------------------------
@@ -508,7 +509,7 @@ bool Blockchain::init(BlockchainDB* db, HardFork*& hf, const network_type nettyp
 {
   if (hf != nullptr)
     m_hardfork = hf;
-  bool res = init(db, nettype, offline, NULL);
+  bool res = init(db, nettype, offline, NULL,true);
   if (hf == nullptr)
     hf = m_hardfork;
   return res;
@@ -871,7 +872,8 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
     m_difficulties = difficulties;
   }
   size_t target = get_difficulty_target();
-  difficulty_type diff = next_difficulty(timestamps, difficulties, target);
+  //difficulty_type diff = next_difficulty(timestamps, difficulties, target);
+	difficulty_type diff = next_difficulty_with_statistics(m_statistics_db,height,timestamps, difficulties, target);
 
   CRITICAL_REGION_LOCAL1(m_difficulty_lock);
   m_difficulty_for_next_block_top_hash = top_hash;
@@ -1079,7 +1081,7 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
   size_t target = get_ideal_hard_fork_version(bei.height) < 2 ? DIFFICULTY_TARGET_V1 : DIFFICULTY_TARGET_V2;
 
   // calculate the difficulty target for the block and return it
-  return next_difficulty(timestamps, cumulative_difficulties, target);
+  return next_difficulty_with_statistics(m_statistics_db,bei.height,timestamps, cumulative_difficulties, target);
 }
 //------------------------------------------------------------------
 // This function does a sanity check on basic things that all miner

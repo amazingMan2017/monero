@@ -2176,6 +2176,27 @@ namespace cryptonote
     res.status = CORE_RPC_STATUS_OK;
     return true;
   }
+
+  bool core_rpc_server::on_get_difficulty_statistics(const COMMAND_RPC_DIFFICULTY_STATISTICS::request req,COMMAND_RPC_DIFFICULTY_STATISTICS::response& res,epee::json_rpc::error& error_resp)
+  {
+    PERF_TIMER(on_get_difficulty_statistics);
+    LOG_PRINT_L0("on_get_difficulty_statistics");
+    try
+    {
+      BlockchainSQLITEDB statistics_db =	m_core.get_blockchain_storage().get_statistics_db();
+      statistics_db.query_next_difficulty(req.from_height,req.to_height,res.ns);
+      res.status = CORE_RPC_STATUS_OK;
+    }catch (const std::exception &e)
+    {
+      error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
+      error_resp.message = "Failed to get output distribution";
+      return false;
+    }
+
+    res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
+
   //------------------------------------------------------------------------------------------------------------------------------
   bool core_rpc_server::on_open_statistics(const COMMAND_RPC_OPEN_STATISTICS::request& req, COMMAND_RPC_OPEN_STATISTICS::response& res, epee::json_rpc::error& error_resp)
   {
