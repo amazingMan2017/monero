@@ -10,20 +10,50 @@
 	{
 		uint64_t value1 = *(uint64_t*)(sqlite3_value_blob(argv[0]));
 		uint64_t value2 = *(uint64_t*)(sqlite3_value_blob(argv[1]));
-//	cout << "blob value1  " << value1 << endl;
-//	cout << "blob value2  " << value2 << endl;
+//		LOG_PRINT_L0("blob value1  " << value1);
+//		LOG_PRINT_L0("blob value2  " << value2);
 
 		sqlite3_result_int( ctx, value1 > value2 );
+	}
+
+	void SQLITE_UINT_BIG_EQUAL_THAN( sqlite3_context* ctx,int argc, sqlite3_value** argv )
+	{
+		uint64_t value1 = *(uint64_t*)(sqlite3_value_blob(argv[0]));
+		uint64_t value2 = *(uint64_t*)(sqlite3_value_blob(argv[1]));
+//		LOG_PRINT_L0("blob value1  " << value1);
+//		LOG_PRINT_L0("blob value2  " << value2);
+
+		sqlite3_result_int( ctx, value1 >= value2 );
 	}
 
 	void SQLITE_UINT_SMALL_THAN( sqlite3_context* ctx,int argc, sqlite3_value** argv )
 	{
 		uint64_t value1 = *(uint64_t*)(sqlite3_value_blob(argv[0]));
 		uint64_t value2 = *(uint64_t*)(sqlite3_value_blob(argv[1]));
-//	cout << "blob value1  " << value1 << endl;
-//	cout << "blob value2  " << value2 << endl;
+//		LOG_PRINT_L0("blob value1  " << value1);
+//		LOG_PRINT_L0("blob value2  " << value2);
 
 		sqlite3_result_int( ctx, value1 < value2 );
+	}
+
+	void SQLITE_UINT_SMALL_EQUAL_THAN( sqlite3_context* ctx,int argc, sqlite3_value** argv )
+	{
+		uint64_t value1 = *(uint64_t*)(sqlite3_value_blob(argv[0]));
+		uint64_t value2 = *(uint64_t*)(sqlite3_value_blob(argv[1]));
+//		LOG_PRINT_L0("blob value1  " << value1);
+//		LOG_PRINT_L0("blob value2  " << value2);
+
+		sqlite3_result_int( ctx, value1 <= value2 );
+	}
+
+	void SQLITE_UINT_EQUAL( sqlite3_context* ctx,int argc, sqlite3_value** argv )
+	{
+		uint64_t value1 = *(uint64_t*)(sqlite3_value_blob(argv[0]));
+		uint64_t value2 = *(uint64_t*)(sqlite3_value_blob(argv[1]));
+//		LOG_PRINT_L0("blob value1  " << value1);
+//		LOG_PRINT_L0("blob value2  " << value2);
+
+		sqlite3_result_int( ctx, value1 == value2 );
 	}
 
 	std::vector<std::string> statistics_tables_sql =
@@ -56,6 +86,9 @@
     //add custom functions
 		sqlite3_create_function(m_sqlite3_db, "SQLITE_UINT_BIG_THAN", 2, SQLITE_ANY, nullptr, SQLITE_UINT_BIG_THAN, nullptr, nullptr);
 		sqlite3_create_function(m_sqlite3_db, "SQLITE_UINT_SMALL_THAN", 2, SQLITE_ANY, nullptr, SQLITE_UINT_SMALL_THAN, nullptr, nullptr);
+		sqlite3_create_function(m_sqlite3_db, "SQLITE_UINT_BIG_EQUAL_THAN", 2, SQLITE_ANY, nullptr, SQLITE_UINT_BIG_EQUAL_THAN, nullptr, nullptr);
+		sqlite3_create_function(m_sqlite3_db, "SQLITE_UINT_SMALL_EQUAL_THAN", 2, SQLITE_ANY, nullptr, SQLITE_UINT_SMALL_EQUAL_THAN, nullptr, nullptr);
+		sqlite3_create_function(m_sqlite3_db, "SQLITE_UINT_EQUAL", 2, SQLITE_ANY, nullptr, SQLITE_UINT_EQUAL, nullptr, nullptr);
 
     for(auto it = statistics_tables_sql.begin();it != statistics_tables_sql.end();++it)
 		{
@@ -141,17 +174,15 @@
       return ret;
   }
 
-	int BlockchainSQLITEDB::query_next_difficulty(uint64_t from_height,uint64_t to_height,std::vector<st_nextdifficulty_statistics> results)
+	int BlockchainSQLITEDB::query_next_difficulty(uint64_t from_height,uint64_t to_height,std::vector<st_nextdifficulty_statistics> & results)
 	{
 		CHECK_AND_NO_ASSERT_MES_L(m_statistics_open,-1,0,"statistics closed");
 		int ret;
 		char* error_msg = nullptr;
 
-//		std::string query_nextdifficulty_statistics_sql = "SELECT blockheight,timespan,totalwork,difficulty,logtime FROM t_next_block_difficulty"
-//																									 " WHERE SQLITE_UINT_BIG_THAN(blockheight,?1) AND SQLITE_UINT_SMALL_THAN(blockheight,?1)";
+		std::string query_nextdifficulty_statistics_sql = "SELECT blockheight,timespan,totalwork,difficulty,logtime FROM t_next_block_difficulty"
+																									 " WHERE SQLITE_UINT_BIG_EQUAL_THAN(blockheight,?1) AND SQLITE_UINT_SMALL_EQUAL_THAN(blockheight,?2)";
 
-		std::string query_nextdifficulty_statistics_sql = "SELECT blockheight,timespan,totalwork,difficulty,logtime FROM t_next_block_difficulty";
-//																											" WHERE blockheight > 1 AND blockheight < 5";
 		LOG_PRINT_L1("query sql is " << query_nextdifficulty_statistics_sql);
 		ret= sqlite3_prepare_v2(m_sqlite3_db, query_nextdifficulty_statistics_sql.c_str(), -1, &m_sqlite3_stmt, nullptr);
 		if (ret == SQLITE_OK) {
@@ -159,8 +190,8 @@
 			LOG_PRINT_L1("query next difficulty statistics prepare sql ok ");
 
 			//bind parameters
-			//sqlite3_bind_blob(m_sqlite3_stmt,1,(void*)&from_height,sizeof(from_height), nullptr);
-			//sqlite3_bind_blob(m_sqlite3_stmt,2,(void*)&to_height,sizeof(to_height), nullptr);
+			sqlite3_bind_blob(m_sqlite3_stmt,1,(void*)&from_height,sizeof(from_height), nullptr);
+			sqlite3_bind_blob(m_sqlite3_stmt,2,(void*)&to_height,sizeof(to_height), nullptr);
 
 			while (sqlite3_step(m_sqlite3_stmt) == SQLITE_ROW) {
 
@@ -196,6 +227,59 @@
 
 		return ret;
 	}
+
+int BlockchainSQLITEDB::query_next_difficulty_by_height(uint64_t height,std::vector<st_nextdifficulty_statistics> & results)
+{
+	CHECK_AND_NO_ASSERT_MES_L(m_statistics_open,-1,0,"statistics closed");
+	int ret;
+	char* error_msg = nullptr;
+
+	std::string query_nextdifficulty_statistics_sql = "SELECT blockheight,timespan,totalwork,difficulty,logtime FROM t_next_block_difficulty"
+																										" WHERE SQLITE_UINT_EQUAL(blockheight,?1)";
+
+	LOG_PRINT_L1("query sql is " << query_nextdifficulty_statistics_sql);
+	ret= sqlite3_prepare_v2(m_sqlite3_db, query_nextdifficulty_statistics_sql.c_str(), -1, &m_sqlite3_stmt, nullptr);
+	if (ret == SQLITE_OK) {
+		int rows = 0;
+		LOG_PRINT_L1("query next difficulty statistics prepare sql ok height " << height);
+
+		//bind parameters
+		sqlite3_bind_blob(m_sqlite3_stmt,1,(void*)&height,sizeof(height), nullptr);
+
+		while (sqlite3_step(m_sqlite3_stmt) == SQLITE_ROW) {
+
+			uint64_t blockheight = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt, 0);
+			uint64_t timespan = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt,1);
+			uint64_t  totalwork = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt,2);
+			uint64_t difficulty = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt, 3);
+			const char* logtime = (const char*)sqlite3_column_text(m_sqlite3_stmt, 4);
+
+			st_nextdifficulty_statistics ns;
+			ns.blockheight = blockheight;
+			ns.timespan = timespan;
+			ns.totalwork = totalwork;
+			ns.difficulty = difficulty;
+			ns.logtime = logtime;
+
+
+			LOG_PRINT_L1("blockheight = " << blockheight
+																		<< ", timespan = "<< timespan
+																		<< ", totalwork = "<< totalwork
+																		<< ", difficulty = "<< difficulty
+																		<< ", logtime = " << logtime;);
+			results.push_back(ns);
+			rows ++;
+		}
+		LOG_PRINT_L1("get " << rows << " data from t_next_block_difficulty");
+		sqlite3_finalize(m_sqlite3_stmt);
+	}
+	else {
+		LOG_ERROR("query difficulty sql error ret code " << sqlite3_errmsg(m_sqlite3_db));
+		return SQLITE_ERROR;
+	}
+
+	return ret;
+}
 
   int BlockchainSQLITEDB::insert_block_statistics(uint64_t blockheight, uint64_t difficulty,uint64_t create_template_time)
   {

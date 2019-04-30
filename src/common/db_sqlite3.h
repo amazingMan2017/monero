@@ -31,14 +31,6 @@ struct st_nextdifficulty_statistics
 	uint64_t totalwork;
 	uint64_t difficulty;
 	std::string logtime;
-
-	BEGIN_KV_SERIALIZE_MAP()
-		KV_SERIALIZE(blockheight)
-		KV_SERIALIZE(timespan)
-		KV_SERIALIZE(totalwork)
-		KV_SERIALIZE(difficulty)
-		KV_SERIALIZE(logtime)
-	END_KV_SERIALIZE_MAP()
 };
 
 /**
@@ -83,7 +75,12 @@ public:
     /**
      * query difficulty statistics
      * */
-    int query_next_difficulty(uint64_t from_height,uint64_t to_height,std::vector<st_nextdifficulty_statistics> results);
+    int query_next_difficulty(uint64_t from_height,uint64_t to_height,std::vector<st_nextdifficulty_statistics> & results);
+
+		/**
+		 * query difficulty statistics
+		 * */
+		int query_next_difficulty_by_height(uint64_t height,std::vector<st_nextdifficulty_statistics> & results);
 
     /**
      * statistics the timespan from greating_block_template to notify_new_block
