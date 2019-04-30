@@ -11,6 +11,7 @@
 #include <sqlite3.h>
 #include <sqlite3.h>
 #include <string>
+#include <crypto/hash.h>
 #include <serialization/keyvalue_serialization.h>
 
 namespace statistics_tools
@@ -19,11 +20,12 @@ namespace statistics_tools
 struct st_blockcreate_statistics
 {
 	uint64_t  blockheight;
+	uint64_t  block_timestamp;
 	uint64_t  difficulty;
 	uint64_t 	create_template_time;
 	uint64_t	notify_block_time;
+	uint32_t 	block_nonce;
 	std::string block_hash;
-	std::string block_nonce;
 };
 
 struct st_nextdifficulty_statistics
@@ -78,17 +80,23 @@ int query_next_difficulty_by_height(uint64_t height,std::vector<st_nextdifficult
 /**
  * statistics the timespan from greating_block_template to notify_new_block
  * */
-int insert_block_statistics(uint64_t blockheight, uint64_t difficulty,uint64_t create_template_time);
+int insert_block_statistics(uint64_t blockheight,uint64_t block_timestamp, uint64_t difficulty,uint64_t create_template_time);
 
 /**
 * update block_hash block_nonce notify_block_time with blockheight
 * */
-int update_block_statistics(uint64_t blockheight,std::string block_hash,std::string block_nonce, uint64_t notify_block_time);
+int update_block_statistics_notify_time(uint64_t blockheight,crypto::hash block_hash, uint32_t block_nonce,
+																				uint64_t notify_block_time);
 
 /**
 * query block create time
 * */
-int query_block_statistics(uint64_t from_height,uint64_t to_blockheight,std::vector<st_blockcreate_statistics> results);
+int query_block_statistics(uint64_t from_height,uint64_t to_blockheight,std::vector<st_blockcreate_statistics> & results);
+
+/**
+* query block create time for single height
+* */
+int query_block_statistics_by_height(uint64_t height,std::vector<st_blockcreate_statistics> & results);
 
 }
 

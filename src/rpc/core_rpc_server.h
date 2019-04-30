@@ -157,6 +157,8 @@ namespace cryptonote
         MAP_JON_RPC_WE("get_output_distribution", on_get_output_distribution, COMMAND_RPC_GET_OUTPUT_DISTRIBUTION)
         MAP_JON_RPC_WE("get_difficulty_statistics",on_get_difficulty_statistics,COMMAND_RPC_DIFFICULTY_STATISTICS)
 				MAP_JON_RPC_WE("get_difficulty_statistics_by_height",on_get_difficulty_statistics_by_height,COMMAND_RPC_DIFFICULTY_STATISTICS)
+        MAP_JON_RPC_WE("get_block_statistics",on_get_block_statistics,COMMAND_RPC_BLOCK_STATISTICS)
+        MAP_JON_RPC_WE("get_block_statistics_by_height",on_get_block_statistics_by_height,COMMAND_RPC_BLOCK_STATISTICS)
         MAP_JON_RPC_WE("open_statistics",        on_open_statistics,            COMMAND_RPC_OPEN_STATISTICS)
         MAP_JON_RPC_WE("close_statistics",       on_close_statistics,           COMMAND_RPC_CLOSE_STATISTICS)
       END_JSON_RPC_MAP()
@@ -224,7 +226,9 @@ namespace cryptonote
     bool on_get_output_distribution(const COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::request& req, COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::response& res, epee::json_rpc::error& error_resp);
     bool on_get_difficulty_statistics(const COMMAND_RPC_DIFFICULTY_STATISTICS::request req,COMMAND_RPC_DIFFICULTY_STATISTICS::response& res,epee::json_rpc::error& error_resp);
 		bool on_get_difficulty_statistics_by_height(const COMMAND_RPC_DIFFICULTY_STATISTICS::request req,COMMAND_RPC_DIFFICULTY_STATISTICS::response& res,epee::json_rpc::error& error_resp);
-    bool on_open_statistics(const COMMAND_RPC_OPEN_STATISTICS::request& req, COMMAND_RPC_OPEN_STATISTICS::response& res,epee::json_rpc::error& error_resp);
+    bool on_get_block_statistics(const COMMAND_RPC_BLOCK_STATISTICS::request req,COMMAND_RPC_BLOCK_STATISTICS::response& res,epee::json_rpc::error& error_resp);
+    bool on_get_block_statistics_by_height(const COMMAND_RPC_BLOCK_STATISTICS::request req,COMMAND_RPC_BLOCK_STATISTICS::response& res,epee::json_rpc::error& error_resp);
+		bool on_open_statistics(const COMMAND_RPC_OPEN_STATISTICS::request& req, COMMAND_RPC_OPEN_STATISTICS::response& res,epee::json_rpc::error& error_resp);
     bool on_close_statistics(const COMMAND_RPC_CLOSE_STATISTICS::request& req, COMMAND_RPC_CLOSE_STATISTICS::response& res,epee::json_rpc::error& error_resp);
 
     //-----------------------

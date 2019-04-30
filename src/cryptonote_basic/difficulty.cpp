@@ -204,7 +204,6 @@ namespace cryptonote {
       return 0;
     }
 
-    LOG_PRINT_L0("insert next difficulty ");
 		difficulty_type final_difficulty = (low + time_span - 1) / time_span;
     statistics_tools::insert_next_difficulty(blockheight,time_span,total_work,final_difficulty);
 

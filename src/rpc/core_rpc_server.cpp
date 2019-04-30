@@ -2238,6 +2238,71 @@ namespace cryptonote
 		return true;
 	}
 
+	bool core_rpc_server::on_get_block_statistics(const COMMAND_RPC_BLOCK_STATISTICS::request req,COMMAND_RPC_BLOCK_STATISTICS::response& res,epee::json_rpc::error& error_resp)
+	{
+		PERF_TIMER(on_get_block_statistics);
+		LOG_PRINT_L1("on_get_block_statistics");
+		try
+		{
+			std::vector<statistics_tools::st_blockcreate_statistics> bs;
+			statistics_tools::query_block_statistics(req.from_height,req.to_height,bs);
+
+			for(auto it = bs.begin();it != bs.end(); ++it)
+			{
+				COMMAND_RPC_BLOCK_STATISTICS::block_statistsic blockstat;
+				blockstat.blockheight = it->blockheight;
+				blockstat.block_timestamp = it->block_timestamp;
+				blockstat.block_hash = it->block_hash;
+        blockstat.difficulty = it->difficulty;
+				blockstat.block_nonce = it->block_nonce;
+				blockstat.create_template_time = it->create_template_time;
+				blockstat.notify_block_time = it->notify_block_time;
+				res.block_stat.push_back(blockstat);
+			}
+		}catch (const std::exception &e)
+		{
+			error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
+			error_resp.message = "Failed to get output distribution";
+			return false;
+		}
+
+		res.status = CORE_RPC_STATUS_OK;
+		return true;
+	}
+
+	//query difficulty by height
+	bool core_rpc_server::on_get_block_statistics_by_height(const COMMAND_RPC_BLOCK_STATISTICS::request req,COMMAND_RPC_BLOCK_STATISTICS::response& res,epee::json_rpc::error& error_resp)
+	{
+		PERF_TIMER(on_get_block_statistics_by_height);
+		LOG_PRINT_L1("on_get_block_statistics_by_height");
+		try
+		{
+			std::vector<statistics_tools::st_blockcreate_statistics> bs;
+			statistics_tools::query_block_statistics_by_height(req.height,bs);
+
+			for(auto it = bs.begin();it != bs.end(); ++it)
+			{
+        COMMAND_RPC_BLOCK_STATISTICS::block_statistsic blockstat;
+        blockstat.blockheight = it->blockheight;
+        blockstat.block_timestamp = it->block_timestamp;
+        blockstat.difficulty = it->difficulty;
+        blockstat.block_hash = it->block_hash;
+        blockstat.block_nonce = it->block_nonce;
+        blockstat.create_template_time = it->create_template_time;
+        blockstat.notify_block_time = it->notify_block_time;
+        res.block_stat.push_back(blockstat);
+			}
+		}catch (const std::exception &e)
+		{
+			error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
+			error_resp.message = "Failed to get output distribution";
+			return false;
+		}
+
+		res.status = CORE_RPC_STATUS_OK;
+		return true;
+	}
+
   //------------------------------------------------------------------------------------------------------------------------------
   bool core_rpc_server::on_open_statistics(const COMMAND_RPC_OPEN_STATISTICS::request& req, COMMAND_RPC_OPEN_STATISTICS::response& res, epee::json_rpc::error& error_resp)
   {
