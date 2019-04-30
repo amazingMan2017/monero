@@ -163,7 +163,7 @@ namespace cryptonote {
     return (low + time_span - 1) / time_span;
   }
 
-    difficulty_type next_difficulty_with_statistics(BlockchainSQLITEDB *db,uint64_t blockheight,std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds) {
+    difficulty_type next_difficulty_with_statistics(uint64_t blockheight,std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds) {
 
     if(timestamps.size() > DIFFICULTY_WINDOW)
     {
@@ -206,7 +206,7 @@ namespace cryptonote {
 
     LOG_PRINT_L0("insert next difficulty ");
 		difficulty_type final_difficulty = (low + time_span - 1) / time_span;
-    db->insert_next_difficulty(blockheight,time_span,total_work,final_difficulty);
+    statistics_tools::insert_next_difficulty(blockheight,time_span,total_work,final_difficulty);
 
     return final_difficulty;
   }

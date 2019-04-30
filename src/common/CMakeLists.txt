@@ -39,7 +39,7 @@ set(common_sources
   perf_timer.cpp
   threadpool.cpp
   updates.cpp
-  db_sqlite3.cpp)
+        statistics_tools.cpp)
 
 if (STACK_TRACE)
   list(APPEND common_sources stack_trace.cpp)
@@ -69,7 +69,7 @@ set(common_private_headers
   stack_trace.h
   threadpool.h
   updates.h
-  db_sqlite3.h)
+        statistics_tools.h)
 
 monero_private_headers(common
   ${common_private_headers})

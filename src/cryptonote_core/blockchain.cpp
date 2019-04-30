@@ -380,7 +380,7 @@ bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline
 
 	if(is_open_statistics)
 	{
-		BlockchainSQLITEDB *db_sqlite = new BlockchainSQLITEDB();
+
 		std::vector<std::string> mdb_filenames = m_db->get_filenames();
 		std::string mdb_db_filename = mdb_filenames.at(0);
 		boost::filesystem::path path(mdb_db_filename);
@@ -389,9 +389,8 @@ bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline
 
 		LOG_PRINT_L0("sqlite 3 file name is " << sqlite_db_filename.string());
 
-		db_sqlite->open(sqlite_db_filename.string(),SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_CREATE);
-		db_sqlite->open_statistics();
-		this->m_statistics_db = db_sqlite;
+		statistics_tools::init_statistics_db(sqlite_db_filename.string(),SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_CREATE);
+		statistics_tools::open_statistics();
 	}
 
   // if the blockchain is new, add the genesis block
@@ -873,7 +872,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   }
   size_t target = get_difficulty_target();
   //difficulty_type diff = next_difficulty(timestamps, difficulties, target);
-	difficulty_type diff = next_difficulty_with_statistics(m_statistics_db,height,timestamps, difficulties, target);
+	difficulty_type diff = next_difficulty_with_statistics(height,timestamps, difficulties, target);
 
   CRITICAL_REGION_LOCAL1(m_difficulty_lock);
   m_difficulty_for_next_block_top_hash = top_hash;
@@ -1081,7 +1080,7 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
   size_t target = get_ideal_hard_fork_version(bei.height) < 2 ? DIFFICULTY_TARGET_V1 : DIFFICULTY_TARGET_V2;
 
   // calculate the difficulty target for the block and return it
-  return next_difficulty_with_statistics(m_statistics_db,bei.height,timestamps, cumulative_difficulties, target);
+  return next_difficulty_with_statistics(bei.height,timestamps, cumulative_difficulties, target);
 }
 //------------------------------------------------------------------
 // This function does a sanity check on basic things that all miner

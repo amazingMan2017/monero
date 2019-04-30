@@ -2180,12 +2180,11 @@ namespace cryptonote
   bool core_rpc_server::on_get_difficulty_statistics(const COMMAND_RPC_DIFFICULTY_STATISTICS::request req,COMMAND_RPC_DIFFICULTY_STATISTICS::response& res,epee::json_rpc::error& error_resp)
   {
     PERF_TIMER(on_get_difficulty_statistics);
-    LOG_PRINT_L0("on_get_difficulty_statistics");
+    LOG_PRINT_L1("on_get_difficulty_statistics");
     try
     {
-    	std::vector<st_nextdifficulty_statistics> ns;
-      BlockchainSQLITEDB statistics_db =	m_core.get_blockchain_storage().get_statistics_db();
-      statistics_db.query_next_difficulty(req.from_height,req.to_height,ns);
+    	std::vector<statistics_tools::st_nextdifficulty_statistics> ns;
+			statistics_tools::query_next_difficulty(req.from_height,req.to_height,ns);
 
       for(auto it = ns.begin();it != ns.end(); ++it)
 			{
@@ -2212,12 +2211,11 @@ namespace cryptonote
 	bool core_rpc_server::on_get_difficulty_statistics_by_height(const COMMAND_RPC_DIFFICULTY_STATISTICS::request req,COMMAND_RPC_DIFFICULTY_STATISTICS::response& res,epee::json_rpc::error& error_resp)
 	{
 		PERF_TIMER(on_get_difficulty_statistics);
-		LOG_PRINT_L0("on_get_difficulty_statistics");
+    LOG_PRINT_L1("on_get_difficulty_statistics_by_height");
 		try
 		{
-			std::vector<st_nextdifficulty_statistics> ns;
-			BlockchainSQLITEDB statistics_db =	m_core.get_blockchain_storage().get_statistics_db();
-			statistics_db.query_next_difficulty_by_height(req.height,ns);
+			std::vector<statistics_tools::st_nextdifficulty_statistics> ns;
+			statistics_tools::query_next_difficulty_by_height(req.height,ns);
 
 			for(auto it = ns.begin();it != ns.end(); ++it)
 			{
@@ -2246,9 +2244,8 @@ namespace cryptonote
     PERF_TIMER(open_statistics);
     try
     {
-    	BlockchainSQLITEDB statistics_db =	m_core.get_blockchain_storage().get_statistics_db();
     	LOG_PRINT_L0("statistics opened ");
-    	statistics_db.open_statistics();
+			statistics_tools::open_statistics();
       res.status = CORE_RPC_STATUS_OK;
     }
     catch (const std::exception &e)
@@ -2267,9 +2264,8 @@ namespace cryptonote
     PERF_TIMER(close_statistics);
     try
     {
-      BlockchainSQLITEDB statistics_db =	m_core.get_blockchain_storage().get_statistics_db();
       LOG_PRINT_L0("statistics closed");
-      statistics_db.close_statistics();
+			statistics_tools::close_statistics();
     }
     catch (const std::exception &e)
     {

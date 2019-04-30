@@ -40,7 +40,7 @@
 #include <atomic>
 #include <unordered_map>
 #include <unordered_set>
-#include <common/db_sqlite3.h>
+#include <common/statistics_tools.h>
 
 #include "syncobj.h"
 #include "string_tools.h"
@@ -908,26 +908,6 @@ namespace cryptonote
     }
 
     /**
-     * @brief get a reference to the BlockchainDB in use by Blockchain
-     *
-     * @return a reference to the BlockchainDB instance
-    */
-    const BlockchainSQLITEDB& get_statistics_db() const
-    {
-      return *m_statistics_db;
-    }
-
-    /**
-     * @brief get a reference to the BlockchainDB in use by Blockchain
-     *
-     * @return a reference to the BlockchainDB instance
-     */
-    BlockchainSQLITEDB& get_statistics_db()
-    {
-      return *m_statistics_db;
-    }
-
-    /**
      * @brief get a number of outputs of a specific amount
      *
      * @param amount the amount
@@ -1000,7 +980,6 @@ namespace cryptonote
 
 
     BlockchainDB* m_db;
-    BlockchainSQLITEDB* m_statistics_db;
 
     tx_memory_pool& m_tx_pool;
     mutable epee::critical_section m_blockchain_lock; // TODO: add here reader/writer lock
