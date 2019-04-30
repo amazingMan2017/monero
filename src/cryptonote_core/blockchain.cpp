@@ -1272,8 +1272,6 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
     return false;
   }
 
-  statistics_tools::insert_block_statistics(height,b.timestamp,diffic,create_blocktemplate_time);
-
 #if defined(DEBUG_CREATE_BLOCK_TEMPLATE)
   size_t real_txs_size = 0;
   uint64_t real_fee = 0;

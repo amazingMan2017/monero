@@ -1160,7 +1160,6 @@ namespace cryptonote
       for(auto& tx:  txs)
         arg.b.txs.push_back(tx);
 
-      statistics_tools::update_block_statistics_notify_time(get_block_height(b),get_block_hash(b),b.nonce,time(nullptr));
       m_pprotocol->relay_block(arg, exclude_context);
     }
     return bvc.m_added_to_main_chain;
