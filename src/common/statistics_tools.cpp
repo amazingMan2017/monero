@@ -1,7 +1,3 @@
-//
-// Created by mac on 2019/4/27.
-//
-
 #include <misc_log_ex.h>
 #include <string_tools.h>
 #include "statistics_tools.h"
@@ -203,7 +199,6 @@ int query_next_difficulty(uint64_t from_height,uint64_t to_height,std::vector<st
 			ns.difficulty = difficulty;
 			ns.logtime = logtime;
 
-
 			LOG_PRINT_L1("blockheight = " << blockheight
 																		<< ", timespan = "<< timespan
 																		<< ", totalwork = "<< totalwork
@@ -256,12 +251,11 @@ int query_next_difficulty_by_height(uint64_t height,std::vector<st_nextdifficult
 			ns.difficulty = difficulty;
 			ns.logtime = logtime;
 
-
 			LOG_PRINT_L1("blockheight = " << blockheight
 																		<< ", timespan = "<< timespan
 																		<< ", totalwork = "<< totalwork
 																		<< ", difficulty = "<< difficulty
-																		<< ", logtime = " << logtime;);
+																		<< ", logtime = " << logtime);
 			results.push_back(ns);
 			rows ++;
 		}
