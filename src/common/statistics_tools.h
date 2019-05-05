@@ -89,6 +89,11 @@ int update_block_statistics_notify_time(uint64_t blockheight,crypto::hash block_
 																				uint64_t notify_block_time);
 
 /**
+* update block_hash block_nonce block timestamp with blockheight
+* */
+int update_block_statistics_block_timestamp(uint64_t blockheight,uint64_t blocktimestamp);
+
+/**
 * query block create time
 * */
 int query_block_statistics(uint64_t from_height,uint64_t to_blockheight,std::vector<st_blockcreate_statistics> & results);

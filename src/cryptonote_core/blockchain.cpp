@@ -651,6 +651,7 @@ block Blockchain::pop_block_from_blockchain()
 
   update_next_cumulative_size_limit();
   m_tx_pool.on_blockchain_dec(m_db->height()-1, get_tail_id());
+	invalidate_block_template_cache();
 
   return popped_block;
 }
@@ -661,6 +662,7 @@ bool Blockchain::reset_and_set_genesis_block(const block& b)
   CRITICAL_REGION_LOCAL(m_blockchain_lock);
   m_timestamps_and_difficulties_height = 0;
   m_alternative_chains.clear();
+	invalidate_block_template_cache();
   m_db->reset();
   m_hardfork->init();
 
@@ -1240,13 +1242,32 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
   LOG_PRINT_L3("Blockchain::" << __func__);
   size_t median_size;
   uint64_t already_generated_coins;
-  uint64_t create_blocktemplate_time;
+	uint64_t pool_cookie;
 
-  create_blocktemplate_time = time(nullptr);
   m_tx_pool.lock();
   const auto unlock_guard = epee::misc_utils::create_scope_leave_handler([&]() { m_tx_pool.unlock(); });
   CRITICAL_REGION_LOCAL(m_blockchain_lock);
   height = m_db->height();
+
+  if (m_btc_valid) {
+    if (!memcmp(&miner_address, &m_btc_address, sizeof(cryptonote::account_public_address)) &&
+        m_btc_nonce == ex_nonce && m_btc_pool_cookie == m_tx_pool.cookie()) {
+      //MDEBUG("Using cached template");
+      LOG_PRINT_L1("Using cached template");
+      m_btc.timestamp = time(NULL); // update timestamp unconditionally
+      statistics_tools::update_block_statistics_block_timestamp(height,m_btc.timestamp);
+      b = m_btc;
+      diffic = m_btc_difficulty;
+      expected_reward = m_btc_expected_reward;
+      return true;
+    }
+
+    MDEBUG("Not using cached template: address "
+               << (!memcmp(&miner_address, &m_btc_address, sizeof(cryptonote::account_public_address)))
+               << ", nonce " << (m_btc_nonce == ex_nonce) << ", cookie "
+               << (m_btc_pool_cookie == m_tx_pool.cookie()));
+    invalidate_block_template_cache();
+  }
 
   b.major_version = m_hardfork->get_current_version();
   b.minor_version = m_hardfork->get_ideal_version();
@@ -1271,6 +1292,10 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
   {
     return false;
   }
+	pool_cookie = m_tx_pool.cookie();
+
+  //add block statistics
+	statistics_tools::insert_block_statistics(height,b.timestamp,diffic,time(NULL));
 
 #if defined(DEBUG_CREATE_BLOCK_TEMPLATE)
   size_t real_txs_size = 0;
@@ -1384,6 +1409,7 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
     MDEBUG("Creating block template: miner tx size " << coinbase_blob_size <<
         ", cumulative size " << cumulative_size << " is now good");
 #endif
+    cache_block_template(b, miner_address, ex_nonce, diffic, expected_reward, pool_cookie);
     return true;
   }
   LOG_ERROR("Failed to create_block_template with " << 10 << " tries");
@@ -3665,6 +3691,8 @@ leave:
   // appears to be a NOP *and* is called elsewhere.  wat?
   m_tx_pool.on_blockchain_inc(new_height, id);
 
+	invalidate_block_template_cache();
+
   return true;
 }
 //------------------------------------------------------------------
@@ -4593,6 +4621,24 @@ bool Blockchain::for_all_outputs(std::function<bool(uint64_t amount, const crypt
 bool Blockchain::for_all_outputs(uint64_t amount, std::function<bool(uint64_t height)> f) const
 {
   return m_db->for_all_outputs(amount, f);;
+}
+
+void Blockchain::invalidate_block_template_cache() {
+  MDEBUG("Invalidating block template cache");
+  m_btc_valid = false;
+}
+
+void Blockchain::cache_block_template(const block &b, const cryptonote::account_public_address &address,
+                                      const blobdata &nonce, const difficulty_type &diff, uint64_t expected_reward,
+                                      uint64_t pool_cookie) {
+  MDEBUG("Setting block template cache");
+  m_btc = b;
+  m_btc_address = address;
+  m_btc_nonce = nonce;
+  m_btc_difficulty = diff;
+  m_btc_expected_reward = expected_reward;
+  m_btc_pool_cookie = pool_cookie;
+  m_btc_valid = true;
 }
 
 namespace cryptonote {
