@@ -2240,7 +2240,128 @@ namespace cryptonote
       END_KV_SERIALIZE_MAP()
     };
   };
+  struct COMMAND_RPC_OPEN_STATISTICS
+  {
+    struct request
+    {
+        BEGIN_KV_SERIALIZE_MAP()
+        END_KV_SERIALIZE_MAP()
+    };
+    struct response
+    {
+        std::string status;
+        BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(status)
+        END_KV_SERIALIZE_MAP()
+    };
+  };
 
+	struct COMMAND_RPC_CLOSE_STATISTICS
+	{
+		struct request
+		{
+		BEGIN_KV_SERIALIZE_MAP()
+			END_KV_SERIALIZE_MAP()
+		};
+		struct response
+		{
+			std::string status;
+		BEGIN_KV_SERIALIZE_MAP()
+				KV_SERIALIZE(status)
+			END_KV_SERIALIZE_MAP()
+		};
+	};
+
+  struct COMMAND_RPC_DIFFICULTY_STATISTICS
+  {
+    struct diff_statistsic
+    {
+      uint64_t blockheight;
+      uint64_t timespan;
+      uint64_t totalwork;
+      uint64_t difficulty;
+      std::string logtime;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(blockheight)
+        KV_SERIALIZE(timespan)
+        KV_SERIALIZE(totalwork)
+        KV_SERIALIZE(difficulty)
+        KV_SERIALIZE(logtime)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct request
+    {
+      uint64_t from_height;
+      uint64_t to_height;
+      uint64_t height;        //query for a single height
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(from_height)
+        KV_SERIALIZE(to_height)
+        KV_SERIALIZE(height)
+      END_KV_SERIALIZE_MAP()
+    };
+    struct response
+    {
+      std::string status;
+      std::vector<diff_statistsic> diffs;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(status)
+        KV_SERIALIZE(diffs)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
+  struct COMMAND_RPC_BLOCK_STATISTICS
+  {
+    struct block_statistsic
+    {
+      uint64_t  blockheight;
+      uint64_t  block_timestamp;
+      uint64_t  difficulty;
+      uint64_t 	create_template_time;
+      uint64_t	notify_block_time;
+      uint32_t  block_nonce;
+      std::string block_hash;
+
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(blockheight)
+        KV_SERIALIZE(block_timestamp)
+        KV_SERIALIZE(difficulty)
+        KV_SERIALIZE(create_template_time)
+        KV_SERIALIZE(notify_block_time)
+        KV_SERIALIZE(block_nonce)
+        KV_SERIALIZE(block_hash)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct request
+    {
+      uint64_t from_height;
+      uint64_t to_height;
+      uint64_t height;        //query for a single height
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(from_height)
+        KV_SERIALIZE(to_height)
+        KV_SERIALIZE(height)
+      END_KV_SERIALIZE_MAP()
+    };
+    struct response
+    {
+      std::string status;
+      std::vector<block_statistsic> block_stat;
+
+    BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(status)
+        KV_SERIALIZE(block_stat)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
   struct COMMAND_RPC_GET_OUTPUT_DISTRIBUTION
   {
     struct request

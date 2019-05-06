@@ -517,7 +517,7 @@ namespace cryptonote
     m_blockchain_storage.set_user_options(blocks_threads,
         blocks_per_sync, sync_mode, fast_sync);
 
-    r = m_blockchain_storage.init(db.release(), m_nettype, m_offline, test_options);
+    r = m_blockchain_storage.init(db.release(), m_nettype, m_offline, test_options,true);
 
     r = m_mempool.init(max_txpool_size);
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize memory pool");
@@ -1160,6 +1160,7 @@ namespace cryptonote
       for(auto& tx:  txs)
         arg.b.txs.push_back(tx);
 
+      statistics_tools::update_block_statistics_notify_time(get_block_height(b),get_block_hash(b),b.nonce,time(NULL));
       m_pprotocol->relay_block(arg, exclude_context);
     }
     return bvc.m_added_to_main_chain;

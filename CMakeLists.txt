@@ -446,6 +446,9 @@ if (BERKELEY_DB)
   include_directories(${BDB_INCLUDE})
 endif()
 
+# Final setup for libsqlit3
+include_directories(${SQLITE3_INCLUDE})
+
 # Final setup for libunwind
 include_directories(${LIBUNWIND_INCLUDE})
 link_directories(${LIBUNWIND_LIBRARY_DIRS})

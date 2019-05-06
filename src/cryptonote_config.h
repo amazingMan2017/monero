@@ -127,6 +127,7 @@
 #define CRYPTONOTE_BLOCKCHAINDATA_LOCK_FILENAME "lock.mdb"
 #define P2P_NET_DATA_FILENAME                   "p2pstate.bin"
 #define MINER_CONFIG_FILE_NAME                  "miner_conf.json"
+#define CRYPTONOTE_STATISTICS_DB_FILENAME       "statistics.db"
 
 #define THREAD_STACK_SIZE                       5 * 1024 * 1024
 
