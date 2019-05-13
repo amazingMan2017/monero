@@ -1285,7 +1285,7 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
       //MDEBUG("Using cached template");
       LOG_PRINT_L1("Using cached template");
       m_btc.timestamp = time(NULL); // update timestamp unconditionally
-      statistics_tools::update_block_statistics_block_timestamp(height,m_btc.timestamp);
+      //statistics_tools::update_block_statistics_block_timestamp(height,m_btc.timestamp);
       b = m_btc;
       diffic = m_btc_difficulty;
       expected_reward = m_btc_expected_reward;
