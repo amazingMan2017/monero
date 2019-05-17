@@ -70,14 +70,14 @@ namespace cryptonote
     {
       cryptonote::block block;
       std::vector<transaction> txs;
-      size_t block_weight;
+      size_t block_size;
       difficulty_type cumulative_difficulty;
       uint64_t coins_generated;
 
       BEGIN_SERIALIZE()
         FIELD(block)
         FIELD(txs)
-        VARINT_FIELD(block_weight)
+        VARINT_FIELD(block_size)
         VARINT_FIELD(cumulative_difficulty)
         VARINT_FIELD(coins_generated)
       END_SERIALIZE()

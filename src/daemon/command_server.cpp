@@ -255,7 +255,6 @@ t_command_server::t_command_server(
     m_command_lookup.set_handler(
       "alt_chain_info"
     , std::bind(&t_command_parser_executor::alt_chain_info, &m_parser, p::_1)
-    , "alt_chain_info [blockhash]"
     , "Print the information about alternative chains."
     );
     m_command_lookup.set_handler(
@@ -298,6 +297,7 @@ t_command_server::t_command_server(
     , std::bind(&t_command_parser_executor::version, &m_parser, p::_1)
     , "Print version information."
     );
+
 }
 
 bool t_command_server::process_command_str(const std::string& cmd)
@@ -376,5 +376,7 @@ std::string t_command_server::get_commands_str()
    }
    return ss.str();
  }
+
+
 
 } // namespace daemonize

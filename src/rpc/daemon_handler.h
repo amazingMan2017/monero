@@ -66,6 +66,8 @@ class DaemonHandler : public RpcHandler
 
     void handle(const GetTxGlobalOutputIndices::Request& req, GetTxGlobalOutputIndices::Response& res);
 
+    void handle(const GetRandomOutputsForAmounts::Request& req, GetRandomOutputsForAmounts::Response& res);
+
     void handle(const SendRawTx::Request& req, SendRawTx::Response& res);
 
     void handle(const StartMining::Request& req, StartMining::Response& res);

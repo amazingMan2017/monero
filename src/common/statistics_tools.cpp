@@ -298,7 +298,7 @@ int insert_block_statistics(uint64_t blockheight,uint64_t block_timestamp, uint6
 		sqlite3_bind_blob(m_sqlite3_stmt,4,(void*)&create_template_time,sizeof(create_template_time),nullptr);
 
 		sqlite3_step(m_sqlite3_stmt);
-		LOG_PRINT_L1("insert block create statistics steped :" << sqlite3_errmsg(m_sqlite3_db));
+		LOG_PRINT_L0("insert block create statistics steped :" << sqlite3_errmsg(m_sqlite3_db));
 		sqlite3_finalize(m_sqlite3_stmt);
 		sqlite3_exec(m_sqlite3_db,"COMMIT;",nullptr,nullptr,&error_msg);
 
@@ -348,7 +348,7 @@ int update_block_statistics_notify_time(uint64_t blockheight, crypto::hash block
 		sqlite3_bind_blob(m_sqlite3_stmt,2,(void*)&blockheight,sizeof(blockheight),nullptr);
 
 		sqlite3_step(m_sqlite3_stmt);
-		LOG_PRINT_L1("update block create statistics steped :" << sqlite3_errmsg(m_sqlite3_db));
+		LOG_PRINT_L0("update block create statistics steped :" << sqlite3_errmsg(m_sqlite3_db));
 		sqlite3_finalize(m_sqlite3_stmt);
 		sqlite3_exec(m_sqlite3_db,"COMMIT;",nullptr,nullptr,&error_msg);
 	}

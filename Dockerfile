@@ -17,28 +17,14 @@ RUN set -ex && \
         curl \
         libtool-bin \
         autoconf \
-        automake \
-        bzip2
+        automake
 
 WORKDIR /usr/local
 
-#Cmake
-ARG CMAKE_VERSION=3.12.1
-ARG CMAKE_VERSION_DOT=v3.12
-ARG CMAKE_HASH=c53d5c2ce81d7a957ee83e3e635c8cda5dfe20c9d501a4828ee28e1615e57ab2
-RUN set -ex \
-    && curl -s -O https://cmake.org/files/${CMAKE_VERSION_DOT}/cmake-${CMAKE_VERSION}.tar.gz \
-    && echo "${CMAKE_HASH}  cmake-${CMAKE_VERSION}.tar.gz" | sha256sum -c \
-    && tar -xzf cmake-${CMAKE_VERSION}.tar.gz \
-    && cd cmake-${CMAKE_VERSION} \
-    && ./configure \
-    && make \
-    && make install
-
 ## Boost
-ARG BOOST_VERSION=1_68_0
-ARG BOOST_VERSION_DOT=1.68.0
-ARG BOOST_HASH=7f6130bc3cf65f56a618888ce9d5ea704fa10b462be126ad053e80e553d6d8b7
+ARG BOOST_VERSION=1_66_0
+ARG BOOST_VERSION_DOT=1.66.0
+ARG BOOST_HASH=5721818253e6a0989583192f96782c4a98eb6204965316df9f5ad75819225ca9
 RUN set -ex \
     && curl -s -L -o  boost_${BOOST_VERSION}.tar.bz2 https://dl.bintray.com/boostorg/release/${BOOST_VERSION_DOT}/source/boost_${BOOST_VERSION}.tar.bz2 \
     && echo "${BOOST_HASH}  boost_${BOOST_VERSION}.tar.bz2" | sha256sum -c \
@@ -49,22 +35,21 @@ RUN set -ex \
 ENV BOOST_ROOT /usr/local/boost_${BOOST_VERSION}
 
 # OpenSSL
-ARG OPENSSL_VERSION=1.1.0h
-ARG OPENSSL_HASH=5835626cde9e99656585fc7aaa2302a73a7e1340bf8c14fd635a62c66802a517
+ARG OPENSSL_VERSION=1.0.2n
+ARG OPENSSL_HASH=370babb75f278c39e0c50e8c4e7493bc0f18db6867478341a832a982fd15a8fe
 RUN set -ex \
     && curl -s -O https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz \
     && echo "${OPENSSL_HASH}  openssl-${OPENSSL_VERSION}.tar.gz" | sha256sum -c \
     && tar -xzf openssl-${OPENSSL_VERSION}.tar.gz \
     && cd openssl-${OPENSSL_VERSION} \
     && ./Configure linux-x86_64 no-shared --static -fPIC \
-    && make build_generated \
-    && make libcrypto.a \
+    && make build_crypto build_ssl \
     && make install
 ENV OPENSSL_ROOT_DIR=/usr/local/openssl-${OPENSSL_VERSION}
 
 # ZMQ
-ARG ZMQ_VERSION=v4.2.5
-ARG ZMQ_HASH=d062edd8c142384792955796329baf1e5a3377cd
+ARG ZMQ_VERSION=v4.2.3
+ARG ZMQ_HASH=3226b8ebddd9c6c738ba42986822c26418a49afb
 RUN set -ex \
     && git clone https://github.com/zeromq/libzmq.git -b ${ZMQ_VERSION} \
     && cd libzmq \
@@ -76,10 +61,9 @@ RUN set -ex \
     && ldconfig
 
 # zmq.hpp
-ARG CPPZMQ_VERSION=v4.2.3
 ARG CPPZMQ_HASH=6aa3ab686e916cb0e62df7fa7d12e0b13ae9fae6
 RUN set -ex \
-    && git clone https://github.com/zeromq/cppzmq.git -b ${CPPZMQ_VERSION} \
+    && git clone https://github.com/zeromq/cppzmq.git -b ${ZMQ_VERSION} \
     && cd cppzmq \
     && test `git rev-parse HEAD` = ${CPPZMQ_HASH} || exit 1 \
     && mv *.hpp /usr/local/include
@@ -112,10 +96,8 @@ RUN set -ex \
 WORKDIR /src
 COPY . .
 
-ENV USE_SINGLE_BUILDDIR=1
 ARG NPROC
 RUN set -ex && \
-    git submodule init && git submodule update && \
     rm -rf build && \
     if [ -z "$NPROC" ] ; \
     then make -j$(nproc) release-static ; \
@@ -130,7 +112,8 @@ RUN set -ex && \
     apt-get --no-install-recommends --yes install ca-certificates && \
     apt-get clean && \
     rm -rf /var/lib/apt
-COPY --from=builder /src/build/release/bin /usr/local/bin/
+
+COPY --from=builder /src/build/release/bin/* /usr/local/bin/
 
 # Contains the blockchain
 VOLUME /root/.bitmonero
@@ -144,4 +127,3 @@ EXPOSE 18080
 EXPOSE 18081
 
 ENTRYPOINT ["monerod", "--p2p-bind-ip=0.0.0.0", "--p2p-bind-port=18080", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=18081", "--non-interactive", "--confirm-external-bind"]
-

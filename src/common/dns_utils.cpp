@@ -97,16 +97,11 @@ get_builtin_cert(void)
 */
 
 /** return the built in root DS trust anchor */
-static const char* const*
+static const char*
 get_builtin_ds(void)
 {
-  static const char * const ds[] =
-  {
-    ". IN DS 19036 8 2 49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5\n",
-    ". IN DS 20326 8 2 E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D\n",
-    NULL
-  };
-  return ds;
+  return
+". IN DS 19036 8 2 49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5\n";
 }
 
 /************************************************************
@@ -245,12 +240,7 @@ DNSResolver::DNSResolver() : m_data(new DNSResolverData())
     ub_ctx_hosts(m_data->m_ub_context, NULL);
   }
 
-  const char * const *ds = ::get_builtin_ds();
-  while (*ds)
-  {
-    MINFO("adding trust anchor: " << *ds);
-    ub_ctx_add_ta(m_data->m_ub_context, string_copy(*ds++));
-  }
+  ub_ctx_add_ta(m_data->m_ub_context, string_copy(::get_builtin_ds()));
 }
 
 DNSResolver::~DNSResolver()

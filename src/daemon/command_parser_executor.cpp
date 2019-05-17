@@ -27,7 +27,6 @@
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/dns_utils.h"
-#include "common/command_line.h"
 #include "version.h"
 #include "daemon/command_parser_executor.h"
 
@@ -327,26 +326,12 @@ bool t_command_parser_executor::start_mining(const std::vector<std::string>& arg
   
   if(args.size() == 4)
   {
-    if(args[3] == "true" || command_line::is_yes(args[3]) || args[3] == "1")
-    {
-      ignore_battery = true;
-    }
-    else if(args[3] != "false" && !command_line::is_no(args[3]) && args[3] != "0")
-    {
-      return false;
-    }
+    ignore_battery = args[3] == "true";
   }  
   
   if(args.size() >= 3)
   {
-    if(args[2] == "true" || command_line::is_yes(args[2]) || args[2] == "1")
-    {
-      do_background_mining = true;
-    }
-    else if(args[2] != "false" && !command_line::is_no(args[2]) && args[2] != "0")
-    {
-      return false;
-    }
+    do_background_mining = args[2] == "true";
   }
   
   if(args.size() >= 2)
@@ -614,13 +599,13 @@ bool t_command_parser_executor::print_coinbase_tx_sum(const std::vector<std::str
 
 bool t_command_parser_executor::alt_chain_info(const std::vector<std::string>& args)
 {
-  if(args.size() > 1)
+  if(args.size())
   {
-    std::cout << "usage: alt_chain_info [block_hash]" << std::endl;
+    std::cout << "No parameters allowed" << std::endl;
     return false;
   }
 
-  return m_executor.alt_chain_info(args.size() == 1 ? args[0] : "");
+  return m_executor.alt_chain_info();
 }
 
 bool t_command_parser_executor::print_blockchain_dynamic_stats(const std::vector<std::string>& args)

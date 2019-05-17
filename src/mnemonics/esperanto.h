@@ -37,7 +37,7 @@
  * Sources:
  *   Baza Radikaro Oficiala
  *   Reta Vortaro (http://www.reta-vortaro.de/revo/)
- *   Esperanto Panorama - Esperanto-English Dictionary (https://www.esperanto-panorama.net/vortaro/eoen.htm)
+ *   Esperanto Panorama - Esperanto-English Dictionary (http://www.esperanto-panorama.net/vortaro/eoen.htm)
  *   ESPDIC - Paul Denisowski (http://www.denisowski.org/Esperanto/ESPDIC/espdic.txt)
  */
 
@@ -58,10 +58,7 @@ namespace Language
   class Esperanto: public Base
   {
   public:
-    Esperanto(): Base("Esperanto", "Esperanto", {}, 4)
-    {
-      static constexpr const char * const words[NWORDS] =
-      {
+    Esperanto(): Base("Esperanto", "Esperanto", std::vector<std::string>({
       "abako",
       "abdiki",
       "abelo",
@@ -1688,8 +1685,8 @@ namespace Language
       "zorgi",
       "zukino",
       "zumilo",
-      };
-      set_words(words);
+      }), 4)
+    {
       populate_maps();
     }
   };

@@ -72,10 +72,7 @@ namespace Language
   class Spanish: public Base
   {
   public:
-    Spanish(): Base("Español", "Spanish", {}, 4)
-    {
-      static constexpr const char * const words[NWORDS] =
-      {
+    Spanish(): Base("Español", "Spanish", std::vector<std::string>({
         "ábaco",
         "abdomen",
         "abeja",
@@ -1702,8 +1699,8 @@ namespace Language
         "risa",
         "ritmo",
         "rito"
-      };
-      set_words(words);
+      }), 4)
+    {
       populate_maps(ALLOW_SHORT_WORDS);
     }
   };

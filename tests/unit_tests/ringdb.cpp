@@ -39,37 +39,33 @@
 #include "crypto/crypto.h"
 #include "crypto/random.h"
 #include "crypto/chacha.h"
-#include "ringct/rctOps.h"
-#include "cryptonote_basic/cryptonote_basic.h"
 #include "wallet/ringdb.h"
 
 static crypto::chacha_key generate_chacha_key()
 {
+  uint8_t key[CHACHA_KEY_SIZE];
+  crypto::rand(CHACHA_KEY_SIZE, key);
   crypto::chacha_key chacha_key;
-  uint64_t password = crypto::rand<uint64_t>();
-  crypto::generate_chacha_key(std::string((const char*)&password, sizeof(password)), chacha_key, 1);
+  memcpy(&chacha_key, key, CHACHA_KEY_SIZE);
   return chacha_key;
 }
 
 static crypto::key_image generate_key_image()
 {
-  crypto::key_image key_image;
-  cryptonote::keypair keypair = cryptonote::keypair::generate(hw::get_device("default"));
-  crypto::generate_key_image(keypair.pub, keypair.sec, key_image);
-  return key_image;
+  return crypto::rand<crypto::key_image>();
 }
 
-static std::pair<uint64_t, uint64_t> generate_output()
+static crypto::public_key generate_output()
 {
-  return std::make_pair(rand(), rand());
+  return crypto::rand<crypto::public_key>();
 }
 
 
 static const crypto::chacha_key KEY_1 = generate_chacha_key();
 static const crypto::chacha_key KEY_2 = generate_chacha_key();
 static const crypto::key_image KEY_IMAGE_1 = generate_key_image();
-static const std::pair<uint64_t, uint64_t> OUTPUT_1 = generate_output();
-static const std::pair<uint64_t, uint64_t> OUTPUT_2 = generate_output();
+static const crypto::public_key OUTPUT_1 = generate_output();
+static const crypto::public_key OUTPUT_2 = generate_output();
 
 class RingDB: public tools::ringdb
 {
@@ -80,13 +76,13 @@ public:
 private:
   std::string make_filename()
   {
-    boost::filesystem::path path =
-      boost::filesystem::temp_directory_path();
+    boost::filesystem::path path = tools::get_default_data_dir();
+    path /= "fake";
 #if defined(__MINGW32__) || defined(__MINGW__)
-    filename = tempnam(path.string().c_str(), "monero-ringdb-test-");
+    filename = tempnam(path.string().c_str(), "ringdb-test-");
     EXPECT_TRUE(filename != NULL);
 #else
-    path /= "monero-ringdb-test-XXXXXX";
+    path /= "ringdb-test-XXXXXX";
     filename = strdup(path.string().c_str());
     EXPECT_TRUE(mkdtemp(filename) != NULL);
 #endif
@@ -136,45 +132,21 @@ TEST(ringdb, different_genesis)
   ASSERT_FALSE(ringdb.get_ring(KEY_2, KEY_IMAGE_1, outs2));
 }
 
-TEST(spent_outputs, not_found)
+TEST(blackball, not_found)
 {
   RingDB ringdb;
   ASSERT_TRUE(ringdb.blackball(OUTPUT_1));
   ASSERT_FALSE(ringdb.blackballed(OUTPUT_2));
 }
 
-TEST(spent_outputs, found)
+TEST(blackball, found)
 {
   RingDB ringdb;
   ASSERT_TRUE(ringdb.blackball(OUTPUT_1));
   ASSERT_TRUE(ringdb.blackballed(OUTPUT_1));
 }
 
-TEST(spent_outputs, vector)
-{
-  RingDB ringdb;
-  std::vector<std::pair<uint64_t, uint64_t>> outputs;
-  outputs.push_back(std::make_pair(0, 1));
-  outputs.push_back(std::make_pair(10, 3));
-  outputs.push_back(std::make_pair(10, 4));
-  outputs.push_back(std::make_pair(10, 8));
-  outputs.push_back(std::make_pair(20, 0));
-  outputs.push_back(std::make_pair(20, 1));
-  outputs.push_back(std::make_pair(30, 5));
-  ASSERT_TRUE(ringdb.blackball(outputs));
-  ASSERT_TRUE(ringdb.blackballed(std::make_pair(0, 1)));
-  ASSERT_FALSE(ringdb.blackballed(std::make_pair(10, 2)));
-  ASSERT_TRUE(ringdb.blackballed(std::make_pair(10, 3)));
-  ASSERT_TRUE(ringdb.blackballed(std::make_pair(10, 4)));
-  ASSERT_FALSE(ringdb.blackballed(std::make_pair(10, 5)));
-  ASSERT_TRUE(ringdb.blackballed(std::make_pair(10, 8)));
-  ASSERT_TRUE(ringdb.blackballed(std::make_pair(20, 0)));
-  ASSERT_TRUE(ringdb.blackballed(std::make_pair(20, 1)));
-  ASSERT_FALSE(ringdb.blackballed(std::make_pair(20, 2)));
-  ASSERT_TRUE(ringdb.blackballed(std::make_pair(30, 5)));
-}
-
-TEST(spent_outputs, mark_as_unspent)
+TEST(blackball, unblackball)
 {
   RingDB ringdb;
   ASSERT_TRUE(ringdb.blackball(OUTPUT_1));
@@ -182,7 +154,7 @@ TEST(spent_outputs, mark_as_unspent)
   ASSERT_FALSE(ringdb.blackballed(OUTPUT_1));
 }
 
-TEST(spent_outputs, clear)
+TEST(blackball, clear)
 {
   RingDB ringdb;
   ASSERT_TRUE(ringdb.blackball(OUTPUT_1));

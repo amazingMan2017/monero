@@ -64,7 +64,6 @@ int SignatureFuzzer::init()
       std::cerr << "failed to parse address" << std::endl;
       return 1;
     }
-    address = info.address;
   }
   catch (const std::exception &e)
   {

@@ -72,10 +72,7 @@ namespace Language
   class Chinese_Simplified: public Base
   {
   public:
-    Chinese_Simplified(): Base("简体中文 (中国)", "Chinese (simplified)", {}, 1)
-    {
-      static constexpr const char * const words[NWORDS] =
-      {
+    Chinese_Simplified(): Base("简体中文 (中国)", "Chinese (simplified)", std::vector<std::string>({
       "的",
       "一",
       "是",
@@ -1702,8 +1699,8 @@ namespace Language
       "秒",
       "浙",
       "貌"
-      };
-      set_words(words);
+      }), 1)
+    {
       populate_maps();
     }
   };

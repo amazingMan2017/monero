@@ -121,8 +121,7 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------------
   miner::~miner()
   {
-    try { stop(); }
-    catch (...) { /* ignore */ }
+    stop();
   }
   //-----------------------------------------------------------------------------------------------------
   bool miner::set_block_template(const block& bl, const difficulty_type& di, uint64_t height)
@@ -199,9 +198,8 @@ namespace cryptonote
       {
         uint64_t total_hr = std::accumulate(m_last_hash_rates.begin(), m_last_hash_rates.end(), 0);
         float hr = static_cast<float>(total_hr)/static_cast<float>(m_last_hash_rates.size());
-        const auto flags = std::cout.flags();
         const auto precision = std::cout.precision();
-        std::cout << "hashrate: " << std::setprecision(4) << std::fixed << hr << flags << precision << ENDL;
+        std::cout << "hashrate: " << std::setprecision(4) << std::fixed << hr << precision << ENDL;
       }
     }
     m_last_hr_merge_time = misc_utils::get_tick_count();
@@ -328,11 +326,6 @@ namespace cryptonote
     {
       m_background_mining_thread = boost::thread(attrs, boost::bind(&miner::background_worker_thread, this));
       LOG_PRINT_L0("Background mining controller thread started" );
-    }
-
-    if(get_ignore_battery())
-    {
-      MINFO("Ignoring battery");
     }
 
     return true;
@@ -492,7 +485,7 @@ namespace cryptonote
       {
         //we lucky!
         ++m_config.current_extra_message_index;
-        MGINFO_GREEN("Found block " << get_block_hash(b) << " at height " << height << " for difficulty: " << local_diff);
+        MGINFO_GREEN("Found block for difficulty: " << local_diff << " hash: " << get_block_hash(b) << " nonce: " << b.nonce);
         if(!m_phandler->handle_block_found(b))
         {
           --m_config.current_extra_message_index;

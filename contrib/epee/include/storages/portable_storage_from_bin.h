@@ -59,7 +59,6 @@ namespace epee
       storage_entry load_storage_entry();
       void read(section& sec);
       void read(std::string& str);
-      void read(array_entry &ae);
     private:
       struct recursuion_limitation_guard
       {
@@ -115,7 +114,6 @@ namespace epee
     void throwable_buffer_reader::read(t_pod_type& pod_val)
     {
       RECURSION_LIMITATION();
-      static_assert(std::is_pod<t_pod_type>::value, "POD type expected");
       read(&pod_val, sizeof(pod_val));
     }
     
@@ -278,12 +276,6 @@ namespace epee
       str.assign((const char*)m_ptr, len);
       m_ptr+=len;
       m_count -= len;
-    }
-    inline
-    void throwable_buffer_reader::read(array_entry &ae)
-    {
-      RECURSION_LIMITATION();
-      CHECK_AND_ASSERT_THROW_MES(false, "Reading array entry is not supported");
     }
   }
 }

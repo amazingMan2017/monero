@@ -49,10 +49,7 @@ namespace Language
   class French: public Base
   {
   public:
-    French(): Base("Français", "French", {}, 4)
-    {
-      static constexpr const char * const words[NWORDS] =
-      {
+    French(): Base("Français", "French", std::vector<std::string>({
         "abandon",
         "abattre",
         "aboi",
@@ -1679,8 +1676,8 @@ namespace Language
         "zinc",
         "zone",
         "zoom"
-      };
-      set_words(words);
+      }), 4)
+    {
       populate_maps();
     }
   };

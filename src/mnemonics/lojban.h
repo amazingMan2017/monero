@@ -35,7 +35,7 @@
 /*
  * Word list authored by: sorpaas
  * Sources:
- *   lo gimste jo'u lo ma'oste (https://guskant.github.io/lojbo/gismu-cmavo.html)
+ *   lo gimste jo'u lo ma'oste (http://guskant.github.io/lojbo/gismu-cmavo.html)
  *   N-grams of Lojban corpus (https://mw.lojban.org/papri/N-grams_of_Lojban_corpus)
  */
 
@@ -56,10 +56,7 @@ namespace Language
   class Lojban: public Base
   {
   public:
-    Lojban(): Base("Lojban", "Lojban", {}, 4)
-    {
-      static constexpr const char * const words[NWORDS] =
-      {
+    Lojban(): Base("Lojban", "Lojban", std::vector<std::string>({
       "backi",
       "bacru",
       "badna",
@@ -1686,8 +1683,8 @@ namespace Language
       "noltruti'u",
       "samtci",
       "snaxa'a",
-      };
-      set_words(words);
+      }), 4)
+    {
       populate_maps();
     }
   };

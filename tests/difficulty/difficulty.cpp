@@ -34,7 +34,6 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include <stdexcept>
 
 #include "cryptonote_config.h"
 #include "cryptonote_basic/difficulty.h"
