@@ -77,9 +77,10 @@ public:
 
     const auto testnet = command_line::get_arg(vm, cryptonote::arg_testnet_on);
     const auto stagenet = command_line::get_arg(vm, cryptonote::arg_stagenet_on);
+    const auto regtest = command_line::get_arg(vm, cryptonote::arg_regtest_on);
     const auto restricted = command_line::get_arg(vm, cryptonote::core_rpc_server::arg_restricted_rpc);
     const auto main_rpc_port = command_line::get_arg(vm, cryptonote::core_rpc_server::arg_rpc_bind_port);
-    rpcs.emplace_back(new t_rpc{vm, core, p2p, restricted, testnet ? cryptonote::TESTNET : stagenet ? cryptonote::STAGENET : cryptonote::MAINNET, main_rpc_port, "core"});
+    rpcs.emplace_back(new t_rpc{vm, core, p2p, restricted, testnet ? cryptonote::TESTNET : stagenet ? cryptonote::STAGENET : regtest ? cryptonote::FAKECHAIN : cryptonote::MAINNET, main_rpc_port, "core"});
 
     auto restricted_rpc_port_arg = cryptonote::core_rpc_server::arg_rpc_restricted_bind_port;
     if(!command_line::is_arg_defaulted(vm, restricted_rpc_port_arg))
@@ -148,7 +149,6 @@ bool t_daemon::run(bool interactive)
     stop_thread.join();
   });
   tools::signal_handler::install([&stop, &shutdown](int){ stop = shutdown = true; });
-  // tools::signal_handler::install(std::bind(&daemonize::t_daemon::stop_p2p, this));
 
   try
   {

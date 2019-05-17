@@ -1,7 +1,3 @@
-//
-// Created by mac on 2019/4/27.
-//
-
 #include <misc_log_ex.h>
 #include <string_tools.h>
 #include "statistics_tools.h"
@@ -203,7 +199,6 @@ int query_next_difficulty(uint64_t from_height,uint64_t to_height,std::vector<st
 			ns.difficulty = difficulty;
 			ns.logtime = logtime;
 
-
 			LOG_PRINT_L1("blockheight = " << blockheight
 																		<< ", timespan = "<< timespan
 																		<< ", totalwork = "<< totalwork
@@ -256,12 +251,11 @@ int query_next_difficulty_by_height(uint64_t height,std::vector<st_nextdifficult
 			ns.difficulty = difficulty;
 			ns.logtime = logtime;
 
-
 			LOG_PRINT_L1("blockheight = " << blockheight
 																		<< ", timespan = "<< timespan
 																		<< ", totalwork = "<< totalwork
 																		<< ", difficulty = "<< difficulty
-																		<< ", logtime = " << logtime;);
+																		<< ", logtime = " << logtime);
 			results.push_back(ns);
 			rows ++;
 		}
@@ -304,7 +298,7 @@ int insert_block_statistics(uint64_t blockheight,uint64_t block_timestamp, uint6
 		sqlite3_bind_blob(m_sqlite3_stmt,4,(void*)&create_template_time,sizeof(create_template_time),nullptr);
 
 		sqlite3_step(m_sqlite3_stmt);
-		LOG_PRINT_L0("insert block create statistics steped :" << sqlite3_errmsg(m_sqlite3_db));
+		LOG_PRINT_L1("insert block create statistics steped :" << sqlite3_errmsg(m_sqlite3_db));
 		sqlite3_finalize(m_sqlite3_stmt);
 		sqlite3_exec(m_sqlite3_db,"COMMIT;",nullptr,nullptr,&error_msg);
 
@@ -354,12 +348,54 @@ int update_block_statistics_notify_time(uint64_t blockheight, crypto::hash block
 		sqlite3_bind_blob(m_sqlite3_stmt,2,(void*)&blockheight,sizeof(blockheight),nullptr);
 
 		sqlite3_step(m_sqlite3_stmt);
-		LOG_PRINT_L0("update block create statistics steped :" << sqlite3_errmsg(m_sqlite3_db));
+		LOG_PRINT_L1("update block create statistics steped :" << sqlite3_errmsg(m_sqlite3_db));
 		sqlite3_finalize(m_sqlite3_stmt);
 		sqlite3_exec(m_sqlite3_db,"COMMIT;",nullptr,nullptr,&error_msg);
 	}
 	else {
 		LOG_ERROR("sqlite 3 update block create statistic failed : " << sqlite3_errmsg(m_sqlite3_db));
+		sqlite3_exec(m_sqlite3_db,"END TRANSACTION;",nullptr,nullptr,nullptr);
+		return SQLITE_ERROR;
+	}
+
+	return SQLITE_OK;
+}
+
+int update_block_statistics_block_timestamp(uint64_t blockheight,uint64_t block_timestamp)
+{
+	CHECK_AND_NO_ASSERT_MES_L(m_is_db_inited,-1,0,"statistics database not opened");
+	CHECK_AND_NO_ASSERT_MES_L(m_statistics_open,-1,0,"statistics closed");
+
+	int ret;
+	char* error_msg = nullptr;
+	std::string update_blockcreate_sql = "update t_block_create_time set block_timestamp = ?2 where blockheight = ?1;";
+
+	LOG_PRINT_L1("update blcok timestamp create sql " << update_blockcreate_sql);
+
+	/**begin transaction*/
+	ret = sqlite3_exec(m_sqlite3_db,"BEGIN TRANSACTION;",nullptr,nullptr,&error_msg);
+	if (ret != SQLITE_OK)
+	{
+		LOG_PRINT_L1("update block timestamp begin transaction failed :" << error_msg);
+		sqlite3_free(error_msg);
+		sqlite3_exec(m_sqlite3_db,"END TRANSACTION;",nullptr,nullptr,nullptr);
+		return SQLITE_ERROR;
+	}
+
+	ret= sqlite3_prepare_v2(m_sqlite3_db, update_blockcreate_sql.c_str(), -1, &m_sqlite3_stmt, nullptr);
+	if (ret == SQLITE_OK) {
+		LOG_PRINT_L1("sqlite 3 update block timestamp successed ");
+
+		sqlite3_bind_blob(m_sqlite3_stmt,1,(void*)&blockheight,sizeof(blockheight),nullptr);
+		sqlite3_bind_blob(m_sqlite3_stmt,2,(void*)&block_timestamp,sizeof(block_timestamp),nullptr);
+
+		sqlite3_step(m_sqlite3_stmt);
+		LOG_PRINT_L0("update block timestamp steped :" << sqlite3_errmsg(m_sqlite3_db));
+		sqlite3_finalize(m_sqlite3_stmt);
+		sqlite3_exec(m_sqlite3_db,"COMMIT;",nullptr,nullptr,&error_msg);
+	}
+	else {
+		LOG_ERROR("sqlite 3 update block timestamp failed : " << sqlite3_errmsg(m_sqlite3_db));
 		sqlite3_exec(m_sqlite3_db,"END TRANSACTION;",nullptr,nullptr,nullptr);
 		return SQLITE_ERROR;
 	}
@@ -385,12 +421,21 @@ int query_block_statistics(uint64_t from_height,uint64_t to_blockheight, std::ve
 
 			uint64_t blockheight = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt, 0);
 			uint64_t block_timestamp = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt, 1);
-			const char* block_hash = (const char*)sqlite3_column_text(m_sqlite3_stmt,2);
-			//TODO:user blob to store block nonce??
+
+			std::string block_hash = "0";
+			if(nullptr != sqlite3_column_text(m_sqlite3_stmt,2))
+			{
+				block_hash = (const char*)sqlite3_column_text(m_sqlite3_stmt,2);
+			}
+
 			uint32_t block_nonce = (uint32_t)sqlite3_column_int64(m_sqlite3_stmt,3);
 			uint64_t difficulty = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt, 4);
 			uint64_t create_template_time = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt, 5);
-			uint64_t notify_block_time = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt, 6);
+			uint64_t notify_block_time = 0;
+			if(nullptr != sqlite3_column_blob(m_sqlite3_stmt, 6))
+			{
+				notify_block_time = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt, 6);
+			}
 
 			st_blockcreate_statistics bs;
 			bs.blockheight = blockheight;
@@ -402,13 +447,13 @@ int query_block_statistics(uint64_t from_height,uint64_t to_blockheight, std::ve
 			bs.notify_block_time = notify_block_time;
 
 			LOG_PRINT_L1("blockheight = " << blockheight
-								<< ", block_hash = "<< block_hash
-								<< ", block_timestamp = "<< block_timestamp
-								<< ", block_nonce = "<< block_nonce
-								<< ", difficulty = "<< difficulty
-								<< ", create_template_time = " << create_template_time
-								<< ", notify_block_time = " << notify_block_time
-								);
+																		<< ", block_timestamp = "<< block_timestamp
+																		<< ", block_hash = "<< block_hash
+																		<< ", block_nonce = "<< block_nonce
+																		<< ", difficulty = "<< difficulty
+																		<< ", create_template_time = " << create_template_time
+																		<< ", notify_block_time = " << notify_block_time
+			);
 			results.push_back(bs);
 		}
 	}
@@ -437,12 +482,21 @@ int query_block_statistics_by_height(uint64_t height,std::vector<st_blockcreate_
 
 			uint64_t blockheight = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt, 0);
 			uint64_t block_timestamp = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt, 1);
-			const char* block_hash = (const char*)sqlite3_column_text(m_sqlite3_stmt,2);
-			//TODO:user blob to store block nonce??
+
+			std::string block_hash = "0";
+			if(nullptr != sqlite3_column_text(m_sqlite3_stmt,2))
+			{
+				block_hash = (const char*)sqlite3_column_text(m_sqlite3_stmt,2);
+			}
+
 			uint32_t block_nonce = (uint32_t)sqlite3_column_int64(m_sqlite3_stmt,3);
 			uint64_t difficulty = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt, 4);
 			uint64_t create_template_time = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt, 5);
-			uint64_t notify_block_time = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt, 6);
+			uint64_t notify_block_time = 0;
+			if(nullptr != sqlite3_column_blob(m_sqlite3_stmt, 6))
+			{
+				notify_block_time = *(uint64_t*)sqlite3_column_blob(m_sqlite3_stmt, 6);
+			}
 
 			st_blockcreate_statistics bs;
 			bs.blockheight = blockheight;
@@ -454,13 +508,13 @@ int query_block_statistics_by_height(uint64_t height,std::vector<st_blockcreate_
 			bs.notify_block_time = notify_block_time;
 
 			LOG_PRINT_L1("blockheight = " << blockheight
-											              << ", block_timestamp = "<< block_timestamp
+																		<< ", block_timestamp = "<< block_timestamp
 																		<< ", block_hash = "<< block_hash
 																		<< ", block_nonce = "<< block_nonce
 																		<< ", difficulty = "<< difficulty
 																		<< ", create_template_time = " << create_template_time
 																		<< ", notify_block_time = " << notify_block_time
-			);
+									);
 			results.push_back(bs);
 		}
 	}

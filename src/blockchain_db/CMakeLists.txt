@@ -38,6 +38,7 @@ if (BERKELEY_DB)
   )
 endif()
 
+
 set(blockchain_db_headers)
 
 set(blockchain_db_private_headers
@@ -51,9 +52,6 @@ if (BERKELEY_DB)
   berkeleydb/db_bdb.h
   )
 endif()
-
-set(blockchain_db_private_headers
-        ${blockchain_db_private_headers})
 
 monero_private_headers(blockchain_db
   ${crypto_private_headers})
