@@ -10195,6 +10195,23 @@ std::vector<tools::wallet2::transfer_details> wallet2::export_outputs() const
   return outs;
 }
 //----------------------------------------------------------------------------------------------------
+std::string wallet2::export_outputs_to_str() const
+{
+  std::vector<tools::wallet2::transfer_details> outs = export_outputs();
+
+  std::stringstream oss;
+  boost::archive::portable_binary_oarchive ar(oss);
+  ar << outs;
+
+  std::string magic(OUTPUT_EXPORT_FILE_MAGIC, strlen(OUTPUT_EXPORT_FILE_MAGIC));
+  const cryptonote::account_public_address &keys = get_account().get_keys().m_account_address;
+  std::string header;
+  header += std::string((const char *)&keys.m_spend_public_key, sizeof(crypto::public_key));
+  header += std::string((const char *)&keys.m_view_public_key, sizeof(crypto::public_key));
+  std::string ciphertext = encrypt_with_view_secret_key(header + oss.str());
+  return magic + ciphertext;
+}
+//----------------------------------------------------------------------------------------------------
 size_t wallet2::import_outputs(const std::vector<tools::wallet2::transfer_details> &outputs)
 {
   m_transfers.clear();
@@ -10210,40 +10227,23 @@ size_t wallet2::import_outputs(const std::vector<tools::wallet2::transfer_detail
     crypto::public_key tx_pub_key = get_tx_pub_key_from_received_outs(td);
     const std::vector<crypto::public_key> additional_tx_pub_keys = get_additional_tx_pub_keys_from_extra(td.m_tx);
 
+    THROW_WALLET_EXCEPTION_IF(td.m_tx.vout[td.m_internal_output_index].target.type() != typeid(cryptonote::txout_to_key),
+        error::wallet_internal_error, "Unsupported output type");
     const crypto::public_key& out_key = boost::get<cryptonote::txout_to_key>(td.m_tx.vout[td.m_internal_output_index].target).key;
     bool r = cryptonote::generate_key_image_helper(m_account.get_keys(), m_subaddresses, out_key, tx_pub_key, additional_tx_pub_keys, td.m_internal_output_index, in_ephemeral, td.m_key_image, m_account.get_device());
     THROW_WALLET_EXCEPTION_IF(!r, error::wallet_internal_error, "Failed to generate key image");
     expand_subaddresses(td.m_subaddr_index);
     td.m_key_image_known = true;
     td.m_key_image_partial = false;
-    THROW_WALLET_EXCEPTION_IF(in_ephemeral.pub != boost::get<cryptonote::txout_to_key>(td.m_tx.vout[td.m_internal_output_index].target).key,
+    THROW_WALLET_EXCEPTION_IF(in_ephemeral.pub != out_key,
         error::wallet_internal_error, "key_image generated ephemeral public key not matched with output_key at index " + boost::lexical_cast<std::string>(i));
 
     m_key_images[td.m_key_image] = m_transfers.size();
     m_pub_keys[td.get_public_key()] = m_transfers.size();
-    m_transfers.push_back(td);
+    m_transfers.push_back(std::move(td));
   }
 
   return m_transfers.size();
-}
-//----------------------------------------------------------------------------------------------------
-std::string wallet2::export_outputs_to_str() const
-{
-  //PERF_TIMER(export_outputs_to_str);
-
-  std::stringstream oss;
-  boost::archive::portable_binary_oarchive ar(oss);
-  const auto& outputs = export_outputs();
-  ar << outputs;
-
-  std::string magic(OUTPUT_EXPORT_FILE_MAGIC, strlen(OUTPUT_EXPORT_FILE_MAGIC));
-  const cryptonote::account_public_address &keys = get_account().get_keys().m_account_address;
-  std::string header;
-  header += std::string((const char *)&keys.m_spend_public_key, sizeof(crypto::public_key));
-  header += std::string((const char *)&keys.m_view_public_key, sizeof(crypto::public_key));
-  //PERF_TIMER(export_outputs_encryption);
-  std::string ciphertext = encrypt_with_view_secret_key(header + oss.str());
-  return magic + ciphertext;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -10314,7 +10314,6 @@ process:
 //----------------------------------------------------------------------------------------------------
 size_t wallet2::import_outputs_from_str(const std::string &outputs_st)
 {
-  //PERF_TIMER(import_outputs_from_str);
   std::string data = outputs_st;
   const size_t magiclen = strlen(OUTPUT_EXPORT_FILE_MAGIC);
   if (data.size() < magiclen || memcmp(data.data(), OUTPUT_EXPORT_FILE_MAGIC, magiclen))
@@ -10324,7 +10323,6 @@ size_t wallet2::import_outputs_from_str(const std::string &outputs_st)
 
   try
   {
-    //PERF_TIMER(import_outputs_decrypt);
     data = decrypt_with_view_secret_key(std::string(data, magiclen));
   }
   catch (const std::exception &e)
@@ -10351,7 +10349,7 @@ size_t wallet2::import_outputs_from_str(const std::string &outputs_st)
     std::string body(data, headerlen);
     std::stringstream iss;
     iss << body;
-    std::pair<size_t, std::vector<tools::wallet2::transfer_details>> outputs;
+    std::vector<tools::wallet2::transfer_details> outputs;
     try
     {
       boost::archive::portable_binary_iarchive ar(iss);
