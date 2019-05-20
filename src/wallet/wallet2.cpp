@@ -10894,6 +10894,7 @@ std::string wallet2::export_outputs_to_str() const
   std::string ciphertext = encrypt_with_view_secret_key(header + oss.str());
   return magic + ciphertext;
 }
+
 //----------------------------------------------------------------------------------------------------
 size_t wallet2::import_outputs(const std::vector<tools::wallet2::transfer_details> &outputs)
 {

@@ -797,14 +797,13 @@ namespace tools
     }
     else
     {
-      unsigned_txset = epee::string_tools::buff_to_hex_nodelimer(m_wallet->dump_tx_to_str(ptx_vector));
-      if (unsigned_txset.empty())
-      {
-        er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
-        er.message = "Failed to save unsigned tx set after creation";
-        return false;
-      }
-      LOG_PRINT_L1("unsigned_txset is " << unsigned_txset);
+			unsigned_txset = epee::string_tools::buff_to_hex_nodelimer(m_wallet->dump_tx_to_str(ptx_vector));
+			if (unsigned_txset.empty())
+			{
+				er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+				er.message = "Failed to save unsigned tx set after creation";
+				return false;
+			}
 
       if (!do_not_relay)
         m_wallet->commit_tx(ptx_vector);
