@@ -4324,7 +4324,6 @@ bool simple_wallet::refresh(const std::vector<std::string>& args)
         start_height = 0;
     }
   }
-  LOG_PRINT_L1("refresh from the start_height " << start_height);
   return refresh_main(start_height, false);
 }
 //----------------------------------------------------------------------------------------------------

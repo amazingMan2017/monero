@@ -190,6 +190,7 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool parse_and_validate_tx_base_from_blob(const blobdata& tx_blob, transaction& tx)
   {
+		LOG_PRINT_L1("parse_and_validate_tx_base_from_blob");
     std::stringstream ss;
     ss << tx_blob;
     binary_archive<false> ba(ss);
@@ -201,6 +202,7 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool parse_and_validate_tx_from_blob(const blobdata& tx_blob, transaction& tx, crypto::hash& tx_hash, crypto::hash& tx_prefix_hash)
   {
+		LOG_PRINT_L1("parse_and_validate_tx_from_blob and get tx hash");
     std::stringstream ss;
     ss << tx_blob;
     binary_archive<false> ba(ss);

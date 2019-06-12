@@ -571,13 +571,13 @@ namespace cryptonote
     {
       MERROR("Failed to parse block notify spec");
     }
-    const difficulty_type fixed_difficulty = command_line::get_arg(vm, arg_fixed_difficulty);
-    r = m_blockchain_storage.init(db.release(), m_nettype, m_offline, test_options,true,fixed_difficulty);
 
     const std::pair<uint8_t, uint64_t> regtest_hard_forks[3] = {std::make_pair(1, 0), std::make_pair(Blockchain::get_hard_fork_heights(MAINNET).back().version, 1), std::make_pair(0, 0)};
     const cryptonote::test_options regtest_test_options = {
       regtest_hard_forks
     };
+    const difficulty_type fixed_difficulty = command_line::get_arg(vm, arg_fixed_difficulty);
+    r = m_blockchain_storage.init(db.release(), m_nettype, m_offline, regtest ? &regtest_test_options : test_options,false, fixed_difficulty);
 
     r = m_mempool.init(max_txpool_weight);
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize memory pool");
@@ -1296,7 +1296,6 @@ namespace cryptonote
       for(auto& tx:  txs)
         arg.b.txs.push_back(tx);
 
-      //statistics_tools::update_block_statistics_notify_time(get_block_height(b),get_block_hash(b),b.nonce,time(NULL));
       m_pprotocol->relay_block(arg, exclude_context);
     }
     return bvc.m_added_to_main_chain;

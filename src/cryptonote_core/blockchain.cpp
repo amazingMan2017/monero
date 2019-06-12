@@ -108,6 +108,9 @@ static const struct {
 
   // version 6 starts from block 1400000, which is on or around the 16th of September, 2017. Fork time finalised on 2017-08-18.
   { 6, 1400000, 0, 1503046577 },
+
+  // version 7 starts from block 1546000, which is on or around the 6th of April, 2018. Fork time finalised on 2018-03-17.
+  { 7, 1546000, 0, 1521303150 },
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 1009826;
 static const struct {
@@ -118,16 +121,17 @@ static const struct {
 } testnet_hard_forks[] = {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
-
-  // version 2 starts from block 624634, which is on or around the 23rd of November, 2015. Fork time finalised on 2015-11-20. No fork voting occurs for the v2 fork.
-  { 2, 624634, 0, 1445355000 },
-
-  // versions 3-5 were passed in rapid succession from September 18th, 2016
-  { 3, 800500, 0, 1472415034 },
-  { 4, 801219, 0, 1472415035 },
-  { 5, 802660, 0, 1472415036 + 86400*180 }, // add 5 months on testnet to shut the update warning up since there's a large gap to v6
-
-  { 6, 971400, 0, 1501709789 },
+//
+//  // version 2 starts from block 624634, which is on or around the 23rd of November, 2015. Fork time finalised on 2015-11-20. No fork voting occurs for the v2 fork.
+//  { 2, 624634, 0, 1445355000 },
+//
+//  // versions 3-5 were passed in rapid succession from September 18th, 2016
+//  { 3, 800500, 0, 1472415034 },
+//  { 4, 801219, 0, 1472415035 },
+//  { 5, 802660, 0, 1472415036 + 86400*180 }, // add 5 months on testnet to shut the update warning up since there's a large gap to v6
+//
+//  { 6, 971400, 0, 1501709789 },
+  { 7, 330, 0, 1559364876 },
 };
 static const uint64_t testnet_hard_fork_version_1_till = 624633;
 static const struct {
@@ -145,6 +149,7 @@ static const struct {
   { 4, 34000, 0, 1521240000 },
   { 5, 35000, 0, 1521360000 },
   { 6, 36000, 0, 1521480000 },
+  { 7, 37000, 0, 1521600000 },
 };
 
 //------------------------------------------------------------------
@@ -1816,14 +1821,14 @@ void Blockchain::get_output_key_mask_unlocked(const uint64_t& amount, const uint
 //------------------------------------------------------------------
 bool Blockchain::get_output_distribution(uint64_t amount, uint64_t from_height, uint64_t to_height, uint64_t &start_height, std::vector<uint64_t> &distribution, uint64_t &base) const
 {
-  // rct outputs don't exist before v3
+  // rct outputs don't exist before v4
   if (amount == 0)
   {
     switch (m_nettype)
     {
-      case STAGENET: start_height = stagenet_hard_forks[2].height; break;
-      case TESTNET: start_height = testnet_hard_forks[2].height; break;
-      case MAINNET: start_height = mainnet_hard_forks[2].height; break;
+      case STAGENET: start_height = stagenet_hard_forks[3].height; break;
+      case TESTNET: start_height = testnet_hard_forks[3].height; break;
+      case MAINNET: start_height = mainnet_hard_forks[3].height; break;
       default: return false;
     }
   }
@@ -2400,7 +2405,7 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
     }
   }
 
-  // from v8, forbid borromean range proofs
+  // from v7, forbid borromean range proofs
   if (hf_version > 7) {
     if (tx.version >= 2) {
       const bool borromean = rct::is_rct_borromean(tx.rct_signatures.type);
@@ -2550,6 +2555,13 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         if (in_to_key.key_offsets.size() - 1 < mixin)
           mixin = in_to_key.key_offsets.size() - 1;
       }
+    }
+
+    if (hf_version >= HF_VERSION_MIN_MIXIN_10 && mixin != 10)
+    {
+      MERROR_VER("Tx " << get_transaction_hash(tx) << " has invalid ring size (" << (mixin + 1) << "), it should be 11");
+      tvc.m_low_mixin = true;
+      return false;
     }
 
     if (mixin < min_mixin)
@@ -2868,7 +2880,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       return false;
     }
 
-    // for bulletproofs, check they're only multi-output after v7
+    // for bulletproofs, check they're only multi-output after v8
     if (rct::is_rct_bulletproof(rv.type))
     {
       if (hf_version < 7)
@@ -4309,8 +4321,8 @@ bool Blockchain::for_all_txpool_txes(std::function<bool(const crypto::hash&, con
   return m_db->for_all_txpool_txes(f, include_blob, include_unrelayed_txes);
 }
 
-void Blockchain::set_user_options(uint64_t maxthreads, bool sync_on_blocks, uint64_t sync_threshold,
-                                  blockchain_db_sync_mode sync_mode, bool fast_sync) {
+void Blockchain::set_user_options(uint64_t maxthreads, bool sync_on_blocks, uint64_t sync_threshold, blockchain_db_sync_mode sync_mode, bool fast_sync)
+{
   if (sync_mode == db_defaultsync)
   {
     m_db_default_sync = true;
