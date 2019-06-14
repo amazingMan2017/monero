@@ -107,6 +107,9 @@ static const struct {
 
   // version 6 starts from block 1400000, which is on or around the 16th of September, 2017. Fork time finalised on 2017-08-18.
   { 6, 1400000, 0, 1503046577 },
+
+  // version 7 starts from block 1186983, which is on or around the 13th of June, 2019. Fork time finalised on 2019-06-14.
+  //{ 7, 1186983, 0, 1560481409 },
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 1009826;
 static const struct {
@@ -127,6 +130,7 @@ static const struct {
   { 5, 802660, 0, 1472415036 + 86400*180 }, // add 5 months on testnet to shut the update warning up since there's a large gap to v6
 
   { 6, 971400, 0, 1501709789 },
+  { 7, 1186983, 0, 1560481409 },
 };
 static const uint64_t testnet_hard_fork_version_1_till = 624633;
 static const struct {
