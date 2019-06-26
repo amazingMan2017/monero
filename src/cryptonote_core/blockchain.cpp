@@ -880,7 +880,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   //difficulty_type diff = next_difficulty_with_statistics(height,timestamps, difficulties, target);
   difficulty_type diff;
   if(m_db->height() < DIFFICULTY_ADJUST_HEIGHT) {
-    diff = next_difficulty_with_statistics(height,timestamps, difficulties, target);
+    diff = next_difficulty(timestamps, difficulties, target,m_db->height());
   }
   else {
     diff = LWMA1_(timestamps, difficulties, DIFFICULTY_TARGET_V2, DIFFICULTY_WINDOW_ADJUST, height,  DIFFICULTY_ADJUST_HEIGHT, DIFFICULTY_GUESS);
@@ -1107,7 +1107,7 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 
   // calculate the difficulty target for the block and return it
   if(m_db->height() < DIFFICULTY_ADJUST_HEIGHT) {
-    return next_difficulty_with_statistics(bei.height,timestamps, cumulative_difficulties, target);
+    return next_difficulty(timestamps, cumulative_difficulties, target,m_db->height());
   }
   else {
     return LWMA1_(timestamps, cumulative_difficulties, DIFFICULTY_TARGET_V2, DIFFICULTY_WINDOW_ADJUST, m_db->height(), DIFFICULTY_ADJUST_HEIGHT, DIFFICULTY_GUESS);
@@ -3190,9 +3190,10 @@ bool Blockchain::check_block_timestamp(const block& b, uint64_t& median_ts) cons
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
    uint64_t block_ftl = m_db->height() > DIFFICULTY_ADJUST_HEIGHT ? static_cast<size_t>(BLOCK_FUTURE_TIME_LIMIT_ADJUST) : static_cast<size_t>(CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT);
-  if(b.timestamp > get_adjusted_time() + block_ftl)
+  if(b.timestamp > get_adjusted_time() + block_ftl ||
+			b.timestamp < get_adjusted_time() - block_ftl)
   {
-    MERROR_VER("Timestamp of block with id: " << get_block_hash(b) << ", " << b.timestamp << ", bigger than adjusted time + 2 hours");
+    MERROR_VER("Timestamp of block with id: " << get_block_hash(b) << ", " << b.timestamp << ", bigger or smaller than adjusted time + " << block_ftl << " seconds");
     return false;
   }
 
