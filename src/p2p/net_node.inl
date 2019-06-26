@@ -940,7 +940,10 @@ namespace nodetool
     }
 
     peerid_type pi = AUTO_VAL_INIT(pi);
-    res = do_handshake_with_peer(pi, con, just_take_peerlist);
+    try {
+        res = do_handshake_with_peer(pi, con, just_take_peerlist);
+    }
+   catch(...) { /* ignore*/ }
 
     if(!res)
     {
