@@ -37,6 +37,7 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <common/scoped_message_writer.h>
 #include "include_base_utils.h"
 using namespace epee;
 
@@ -694,7 +695,7 @@ uint64_t estimate_tx_weight(bool use_rct, int n_inputs, int mixin, int n_outputs
 
 uint8_t get_bulletproof_fork()
 {
-  return 7;
+  return 0xa7;
 }
 
 uint64_t estimate_fee(bool use_per_byte_fee, bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, uint64_t base_fee, uint64_t fee_multiplier, uint64_t fee_quantization_mask)
@@ -1416,7 +1417,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
         break;
       LOG_PRINT_L0("Public key wasn't found in the transaction extra. Skipping transaction " << txid);
       if(0 != m_callback)
-      	m_callback->on_skip_transaction(height, txid, tx);
+	m_callback->on_skip_transaction(height, txid, tx);
       break;
     }
     if (!tx_cache_data.primary.empty())
@@ -6190,7 +6191,7 @@ int wallet2::get_fee_algorithm() const
 //------------------------------------------------------------------------------------------------------------------------------
 uint64_t wallet2::get_min_ring_size() const
 {
-  if (use_fork_rules(8, 10))
+  if (use_fork_rules(0xa7, 10))
     return 11;
   if (use_fork_rules(7, 10))
     return 7;
@@ -8304,15 +8305,18 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_2(std::vector<cryp
   bool adding_fee; // true if new outputs go towards fee, rather than destinations
   uint64_t needed_fee, available_for_fee = 0;
   uint64_t upper_transaction_weight_limit = get_upper_transaction_weight_limit();
-  //const bool use_per_byte_fee = use_fork_rules(HF_VERSION_PER_BYTE_FEE, 0);
-	const bool use_per_byte_fee = false;
-  const bool use_rct = use_fork_rules(4, 0);
-  const bool bulletproof = use_fork_rules(get_bulletproof_fork(), 0);
+  const bool use_per_byte_fee = use_fork_rules(HF_VERSION_PER_BYTE_FEE, 0);
+  //const bool use_rct = use_fork_rules(4, 0);
+  //const bool bulletproof = use_fork_rules(get_bulletproof_fork(), 0);
+	const bool use_rct = true;
+	const bool bulletproof = true;
   const rct::RangeProofType range_proof_type = bulletproof ? rct::RangeProofPaddedBulletproof : rct::RangeProofBorromean;
 
   const uint64_t base_fee  = get_base_fee();
   const uint64_t fee_multiplier = get_fee_multiplier(priority, get_fee_algorithm());
   const uint64_t fee_quantization_mask = get_fee_quantization_mask();
+
+  tools::msg_writer() << " use_per_byte_fee  " << use_per_byte_fee << " use_rct " << use_rct << " bulletproof " << bulletproof;
 
   // throw if attempting a transaction with no destinations
   THROW_WALLET_EXCEPTION_IF(dsts.empty(), error::zero_destination);
@@ -9100,11 +9104,14 @@ bool wallet2::use_fork_rules(uint8_t version, int64_t early_blocks) const
   result = m_node_rpc_proxy.get_earliest_height(version, earliest_height);
   throw_on_rpc_response_error(result, "get_hard_fork_info");
 
+  LOG_PRINT_L1("Using " << (unsigned)version << " earliest_height " << earliest_height
+												<< " early_blocks " << early_blocks << " height " << height);
+
   bool close_enough = height >=  earliest_height - early_blocks; // start using the rules that many blocks beforehand
   if (close_enough)
-    LOG_PRINT_L2("Using v" << (unsigned)version << " rules");
+    LOG_PRINT_L1("Using v" << (unsigned)version << " rules");
   else
-    LOG_PRINT_L2("Not using v" << (unsigned)version << " rules");
+    LOG_PRINT_L1("Not using v" << (unsigned)version << " rules");
   return close_enough;
 }
 //----------------------------------------------------------------------------------------------------

@@ -109,8 +109,8 @@ static const struct {
   // version 6 starts from block 1400000, which is on or around the 16th of September, 2017. Fork time finalised on 2017-08-18.
   { 6, 1400000, 0, 1503046577 },
 
-  // version 7 starts from block 1546000, which is on or around the 6th of April, 2018. Fork time finalised on 2018-03-17.
-  { 7, 1546000, 0, 1521303150 },
+  // version 0xa7 starts from block 1168000
+  //{ 0xa7, 1168000, 0, 1539617505 },
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 1009826;
 static const struct {
@@ -121,17 +121,17 @@ static const struct {
 } testnet_hard_forks[] = {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
-//
-//  // version 2 starts from block 624634, which is on or around the 23rd of November, 2015. Fork time finalised on 2015-11-20. No fork voting occurs for the v2 fork.
-//  { 2, 624634, 0, 1445355000 },
-//
-//  // versions 3-5 were passed in rapid succession from September 18th, 2016
-//  { 3, 800500, 0, 1472415034 },
-//  { 4, 801219, 0, 1472415035 },
-//  { 5, 802660, 0, 1472415036 + 86400*180 }, // add 5 months on testnet to shut the update warning up since there's a large gap to v6
-//
-//  { 6, 971400, 0, 1501709789 },
-  { 7, 330, 0, 1559364876 },
+
+  // version 2 starts from block 624634, which is on or around the 23rd of November, 2015. Fork time finalised on 2015-11-20. No fork voting occurs for the v2 fork.
+  { 2, 624634, 0, 1445355000 },
+
+  // versions 3-5 were passed in rapid succession from September 18th, 2016
+  { 3, 800500, 0, 1472415034 },
+  { 4, 801219, 0, 1472415035 },
+  { 5, 802660, 0, 1472415036 + 86400*180 }, // add 5 months on testnet to shut the update warning up since there's a large gap to v6
+
+  { 6, 971400, 0, 1501709789 },
+  { 0xa7, 1168000, 0, 1539617505 },	// version 0xa7 starts from block 1168000
 };
 static const uint64_t testnet_hard_fork_version_1_till = 624633;
 static const struct {
@@ -330,7 +330,7 @@ uint64_t Blockchain::get_current_blockchain_height() const
 //------------------------------------------------------------------
 //FIXME: possibly move this into the constructor, to avoid accidentally
 //       dereferencing a null BlockchainDB pointer
-bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline, const cryptonote::test_options *test_options,bool is_open_statistics,difficulty_type fixed_difficulty)
+bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline, const cryptonote::test_options *test_options, difficulty_type fixed_difficulty)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
   CRITICAL_REGION_LOCAL(m_tx_pool);
@@ -348,7 +348,8 @@ bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline
     return false;
   }
 
-  m_db = db;  
+  m_db = db;
+
   m_nettype = test_options != NULL ? FAKECHAIN : nettype;
   m_offline = offline;
   m_fixed_difficulty = fixed_difficulty;
@@ -386,21 +387,6 @@ bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline
 
   m_hardfork->init();  
   m_db->set_hard_fork(m_hardfork);
-
-	if(is_open_statistics)
-	{
-
-		std::vector<std::string> mdb_filenames = m_db->get_filenames();
-		std::string mdb_db_filename = mdb_filenames.at(0);
-		boost::filesystem::path path(mdb_db_filename);
-		boost::filesystem::path sqlite_parent_path = path.parent_path();
-		boost::filesystem::path sqlite_db_filename = (sqlite_parent_path /= CRYPTONOTE_STATISTICS_DB_FILENAME);
-
-		LOG_PRINT_L0("sqlite 3 file name is " << sqlite_db_filename.string());
-
-		statistics_tools::init_statistics_db(sqlite_db_filename.string(),SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_CREATE);
-		statistics_tools::open_statistics();
-	}
 
   // if the blockchain is new, add the genesis block
   // this feels kinda kludgy to do it this way, but can be looked at later.
@@ -505,7 +491,7 @@ bool Blockchain::init(BlockchainDB* db, HardFork*& hf, const network_type nettyp
 {
   if (hf != nullptr)
     m_hardfork = hf;
-  bool res = init(db, nettype, offline, NULL,true);
+  bool res = init(db, nettype, offline, NULL);
   if (hf == nullptr)
     hf = m_hardfork;
   return res;
@@ -880,8 +866,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
     m_difficulties = difficulties;
   }
   size_t target = get_difficulty_target();
-  //difficulty_type diff = next_difficulty(timestamps, difficulties, target);
-	difficulty_type diff = next_difficulty_with_statistics(height,timestamps, difficulties, target);
+  difficulty_type diff = next_difficulty(timestamps, difficulties, target);
 
   CRITICAL_REGION_LOCAL1(m_difficulty_lock);
   m_difficulty_for_next_block_top_hash = top_hash;
@@ -1094,7 +1079,7 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
   size_t target = get_ideal_hard_fork_version(bei.height) < 2 ? DIFFICULTY_TARGET_V1 : DIFFICULTY_TARGET_V2;
 
   // calculate the difficulty target for the block and return it
-  return next_difficulty_with_statistics(bei.height,timestamps, cumulative_difficulties, target);
+  return next_difficulty(timestamps, cumulative_difficulties, target);
 }
 //------------------------------------------------------------------
 // This function does a sanity check on basic things that all miner
@@ -1302,11 +1287,7 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
   {
     return false;
   }
-	pool_cookie = m_tx_pool.cookie();
-
-  //add block statistics
-	//statistics_tools::insert_block_statistics(height,b.timestamp,diffic,time(NULL));
-
+  pool_cookie = m_tx_pool.cookie();
 #if defined(DEBUG_CREATE_BLOCK_TEMPLATE)
   size_t real_txs_weight = 0;
   uint64_t real_fee = 0;
@@ -1421,6 +1402,7 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
     MDEBUG("Creating block template: miner tx weight " << coinbase_weight <<
         ", cumulative weight " << cumulative_weight << " is now good");
 #endif
+
     cache_block_template(b, miner_address, ex_nonce, diffic, expected_reward, pool_cookie);
     return true;
   }
@@ -2392,8 +2374,8 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
     }
   }
 
-  // from v7, allow bulletproofs
-  if (hf_version < 7) {
+  // from 0xa7, allow bulletproofs
+  if (hf_version < 0xa7) {
     if (tx.version >= 2) {
       const bool bulletproof = rct::is_rct_bulletproof(tx.rct_signatures.type);
       if (bulletproof || !tx.rct_signatures.p.bulletproofs.empty())
@@ -2405,13 +2387,13 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
     }
   }
 
-  // from v7, forbid borromean range proofs
-  if (hf_version > 7) {
+  // from 0xa8, forbid borromean range proofs
+  if (hf_version > 0xa7) {
     if (tx.version >= 2) {
       const bool borromean = rct::is_rct_borromean(tx.rct_signatures.type);
       if (borromean)
       {
-        MERROR_VER("Borromean range proofs are not allowed after v8");
+        MERROR_VER("Borromean range proofs are not allowed after 0xa7");
         tvc.m_invalid_output = true;
         return false;
       }
@@ -2591,7 +2573,8 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     const size_t min_tx_version = (n_unmixable > 0 ? 1 : (hf_version >= HF_VERSION_ENFORCE_RCT) ? 2 : 1);
     if (tx.version < min_tx_version)
     {
-      MERROR_VER("transaction version " << (unsigned)tx.version << " is lower than min accepted version " << min_tx_version);
+      MERROR_VER("transaction version " << (unsigned)tx.version << " is lower than min accepted version " << min_tx_version
+																				<< " current hardfork version " << hf_version);
       tvc.m_verifivation_failed = true;
       return false;
     }
@@ -2883,7 +2866,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     // for bulletproofs, check they're only multi-output after v8
     if (rct::is_rct_bulletproof(rv.type))
     {
-      if (hf_version < 7)
+      if (hf_version < 0xa7)
       {
         for (const rct::Bulletproof &proof: rv.p.bulletproofs)
         {

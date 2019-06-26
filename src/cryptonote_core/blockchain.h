@@ -121,7 +121,7 @@ namespace cryptonote
      *
      * @return true on success, false if any initialization steps fail
      */
-    bool init(BlockchainDB* db, const network_type nettype = MAINNET, bool offline = false, const cryptonote::test_options *test_options = NULL,bool is_open_statistics = false,difficulty_type fixed_difficulty = 0);
+    bool init(BlockchainDB* db, const network_type nettype = MAINNET, bool offline = false, const cryptonote::test_options *test_options = NULL, difficulty_type fixed_difficulty = 0);
 
     /**
      * @brief Initialize the Blockchain state
@@ -706,7 +706,7 @@ namespace cryptonote
      * @param fast_sync sync using built-in block hashes as trusted
      */
     void set_user_options(uint64_t maxthreads, bool sync_on_blocks, uint64_t sync_threshold,
-                          blockchain_db_sync_mode sync_mode, bool fast_sync);
+        blockchain_db_sync_mode sync_mode, bool fast_sync);
 
     /**
      * @brief sets a block notify object to call for every new block
