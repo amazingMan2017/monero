@@ -110,7 +110,8 @@ static const struct {
   { 6, 1400000, 0, 1503046577 },
 
   // version 0xa7 starts from block 1873110, which is on or around the 13th of June, 2019. Fork time finalised on 2019-06-26.
-  { 0xa7, 1873110, 0, 1561540921 },
+  //{ 0xa7, 1873110, 0, 1561540921 },
+	{ 0xa7, 1186983, 0, 1560481409 },
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 1009826;
 static const struct {
@@ -149,7 +150,7 @@ static const struct {
   { 4, 34000, 0, 1521240000 },
   { 5, 35000, 0, 1521360000 },
   { 6, 36000, 0, 1521480000 },
-  { 7, 37000, 0, 1521600000 },
+  { 0xa7, 37000, 0, 1521600000 },
 };
 
 //------------------------------------------------------------------
@@ -3189,13 +3190,22 @@ bool Blockchain::check_block_timestamp(std::vector<uint64_t>& timestamps, const 
 bool Blockchain::check_block_timestamp(const block& b, uint64_t& median_ts) const
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
-   uint64_t block_ftl = m_db->height() > DIFFICULTY_ADJUST_HEIGHT ? static_cast<size_t>(BLOCK_FUTURE_TIME_LIMIT_ADJUST) : static_cast<size_t>(CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT);
-  if(b.timestamp > get_adjusted_time() + block_ftl ||
-			b.timestamp < get_adjusted_time() - block_ftl)
+  uint64_t block_ftl = m_db->height() > DIFFICULTY_ADJUST_HEIGHT ? static_cast<size_t>(BLOCK_FUTURE_TIME_LIMIT_ADJUST) : static_cast<size_t>(CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT);
+  if(b.timestamp > get_adjusted_time() + block_ftl)
   {
-    MERROR_VER("Timestamp of block with id: " << get_block_hash(b) << ", " << b.timestamp << ", bigger or smaller than adjusted time + " << block_ftl << " seconds");
+    MERROR_VER("Timestamp of block with id: " << get_block_hash(b) << ", " << b.timestamp << ", bigger than adjusted time + " << block_ftl << " seconds");
     return false;
   }
+
+  uint8_t hf_version = m_hardfork->get_current_version();
+  if( hf_version > 6 && b.timestamp < get_adjusted_time() - block_ftl)
+	{
+		MERROR_VER("Timestamp of block with id: " << get_block_hash(b) << ", "
+                                              << b.timestamp << ", smaller than adjusted time + "
+                                              << block_ftl << " seconds"
+                                              << "current version is " << (uint64_t)hf_version);
+		return false;
+	}
 
   // if not enough blocks, no proper median yet, return true
   size_t bc_ts_check_window = m_db->height() > DIFFICULTY_ADJUST_HEIGHT ? static_cast<size_t>(BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW_ADJUST) : static_cast<size_t>(BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW);
