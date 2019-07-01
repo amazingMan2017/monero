@@ -1722,4 +1722,29 @@ namespace cryptonote
   {
     raise(SIGTERM);
   }
+
+  bool core::check_notify_block_time(const block_complete_entry b)
+	{
+    uint8_t hf_version = m_blockchain_storage.get_current_hard_fork_version();
+    uint64_t current_time = (uint64_t)time(NULL);
+    cryptonote::block block;
+    if(!parse_and_validate_block_from_blob(b.block,block))
+    {
+      LOG_ERROR("fail to parse block while check notify block time");
+      return false;
+    }
+
+    if(hf_version > 6)
+    {
+			//if new block notified after synchronize,check the timestamp
+			//for difficulty safety,block with too small timestamp will be verified as failed
+      if(block.timestamp < current_time - BLOCK_FUTURE_TIME_LIMIT_ADJUST * 2)
+      {
+        LOG_ERROR("receive block " << block.hash <<" after synchronize block timestamp " << block.timestamp
+																	 <<" is too smaller than current time " << current_time);
+        return false;
+      }
+    }
+    return true;
+	}
 }

@@ -350,6 +350,14 @@ namespace cryptonote
       LOG_DEBUG_CC(context, "Received new block while syncing, ignored");
       return 1;
     }
+
+    if(!m_core.check_notify_block_time(arg.b))
+    {
+      LOG_PRINT_CCONTEXT_L0("Block check timestamp  failed , dropping connection");
+      drop_connection(context, true, false);
+      return 1;
+    }
+
     m_core.pause_mine();
     std::vector<block_complete_entry> blocks;
     blocks.push_back(arg.b);

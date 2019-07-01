@@ -48,6 +48,7 @@
 #include "warnings.h"
 #include "crypto/hash.h"
 #include "blockfunding.h"
+#include "../cryptonote_protocol/cryptonote_protocol_defs.h"
 
 PUSH_WARNINGS
 DISABLE_VS_WARNINGS(4355)
@@ -781,6 +782,8 @@ namespace cryptonote
       * @return whether the core is running offline
       */
      bool offline() const { return m_offline; }
+
+     bool check_notify_block_time(const block_complete_entry b);
 
    private:
 
