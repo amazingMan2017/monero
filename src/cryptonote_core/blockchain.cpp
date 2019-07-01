@@ -109,8 +109,8 @@ static const struct {
   // version 6 starts from block 1400000, which is on or around the 16th of September, 2017. Fork time finalised on 2017-08-18.
   { 6, 1400000, 0, 1503046577 },
 
-  // version 0xa7 starts from block 1876720 , timestamp after block 1876000 + 1day
-	{ 0xa7, 1876720, 0, 1561887557 + 24*60*60 },
+  // version 0xa7 starts from block 1881040 , timestamp after block 1876000 + 1week
+	{ 0xa7, 1881040, 0, 1561887557 + 7*24*60*60 },
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 1009826;
 static const struct {
@@ -132,8 +132,8 @@ static const struct {
 
   { 6, 971400, 0, 1501709789 },
 
-  // version 0xa7 starts from block 1876720 , timestamp after block 1876000 + 1day
-  { 0xa7, 1876720, 0, 1561887557 + 24*60*60 },
+		// version 0xa7 starts from block 1881040 , timestamp after block 1876000 + 1week
+	{ 0xa7, 1881040, 0, 1561887557 + 7*24*60*60 },
 };
 static const uint64_t testnet_hard_fork_version_1_till = 624633;
 static const struct {
@@ -3198,15 +3198,15 @@ bool Blockchain::check_block_timestamp(const block& b, uint64_t& median_ts) cons
     return false;
   }
 
-  uint8_t hf_version = m_hardfork->get_current_version();
-  if( hf_version > 6 && b.timestamp < get_adjusted_time() - block_ftl)
-	{
-		MERROR_VER("Timestamp of block with id: " << get_block_hash(b) << ", "
-                                              << b.timestamp << ", smaller than adjusted time + "
-                                              << block_ftl << " seconds"
-                                              << "current version is " << (uint64_t)hf_version);
-		return false;
-	}
+//  uint8_t hf_version = m_hardfork->get_current_version();
+//  if( hf_version > 6 && b.timestamp < get_adjusted_time() - block_ftl)
+//	{
+//		MERROR_VER("Timestamp of block with id: " << get_block_hash(b) << ", "
+//                                              << b.timestamp << ", smaller than adjusted time + "
+//                                              << block_ftl << " seconds"
+//                                              << "current version is " << (uint64_t)hf_version);
+//		return false;
+//	}
 
   // if not enough blocks, no proper median yet, return true
   size_t bc_ts_check_window = m_db->height() > DIFFICULTY_ADJUST_HEIGHT ? static_cast<size_t>(BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW_ADJUST) : static_cast<size_t>(BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW);
@@ -3385,12 +3385,12 @@ leave:
       proof_of_work = get_block_longhash(bl, m_db->height());
 
     // validate proof_of_work versus difficulty target
-    if(!check_hash(proof_of_work, current_diffic))
-    {
-      MERROR_VER("Block with id: " << id << std::endl << "does not have enough proof of work: " << proof_of_work << std::endl << "unexpected difficulty: " << current_diffic);
-      bvc.m_verifivation_failed = true;
-      goto leave;
-    }
+//    if(!check_hash(proof_of_work, current_diffic))
+//    {
+//      MERROR_VER("Block with id: " << id << std::endl << "does not have enough proof of work: " << proof_of_work << std::endl << "unexpected difficulty: " << current_diffic);
+//      bvc.m_verifivation_failed = true;
+//      goto leave;
+//    }
   }
 
   // If we're at a checkpoint, ensure that our hardcoded checkpoint hash
