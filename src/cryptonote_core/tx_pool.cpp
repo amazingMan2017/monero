@@ -308,12 +308,10 @@ namespace cryptonote
     }
 
     tvc.m_verifivation_failed = false;
+
     m_txpool_weight += tx_weight;
-
     ++m_cookie;
-
     MINFO("Transaction added to pool: txid " << id << " weight: " << tx_weight << " fee/byte: " << (fee / (double)tx_weight));
-
     prune(m_txpool_max_weight);
 
     return true;
@@ -394,9 +392,10 @@ namespace cryptonote
     }
     if (changed)
       ++m_cookie;
+
     if (m_txpool_weight > bytes)
       MINFO("Pool weight after pruning is larger than limit: " << m_txpool_weight << "/" << bytes);
-  }
+
   //---------------------------------------------------------------------------------
   bool tx_memory_pool::insert_key_images(const transaction &tx, bool kept_by_block)
   {
@@ -1379,9 +1378,7 @@ namespace cryptonote
         }
       }
     }
-
     m_cookie = 0;
-
     // Ignore deserialization error
     return true;
   }
