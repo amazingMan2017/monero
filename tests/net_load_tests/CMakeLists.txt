@@ -40,6 +40,7 @@ target_link_libraries(net_load_tests_clt
     p2p
     cryptonote_core
     epee
+    ${EPEE_READLINE}
     ${GTEST_LIBRARIES}
     ${Boost_CHRONO_LIBRARY}
     ${Boost_DATE_TIME_LIBRARY}
