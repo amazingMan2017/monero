@@ -395,7 +395,7 @@ namespace cryptonote
 
     if (m_txpool_weight > bytes)
       MINFO("Pool weight after pruning is larger than limit: " << m_txpool_weight << "/" << bytes);
-
+  }
   //---------------------------------------------------------------------------------
   bool tx_memory_pool::insert_key_images(const transaction &tx, bool kept_by_block)
   {
