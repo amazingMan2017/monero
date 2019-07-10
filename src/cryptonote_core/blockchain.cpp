@@ -1277,7 +1277,8 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
   size_t median_weight;
   uint64_t already_generated_coins;
 
-	uint64_t pool_cookie;
+  uint64_t pool_cookie;
+  CRITICAL_REGION_BEGIN(m_blockchain_lock);
   m_tx_pool.lock();
   const auto unlock_guard = epee::misc_utils::create_scope_leave_handler([&]() { m_tx_pool.unlock(); });
 
