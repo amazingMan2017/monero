@@ -109,8 +109,8 @@ static const struct {
   // version 6 starts from block 1400000, which is on or around the 16th of September, 2017. Fork time finalised on 2017-08-18.
   { 6, 1400000, 0, 1503046577 },
 
-  // version 0xa7 starts from block 1881040 , timestamp after block 1876000 + 1week
-	{ 0xa7, 1881040, 0, 1561887557 + 7*24*60*60 },
+  // version 0xa7 starts from block 1882000 , timestamp after block 1882000 + 6000 block
+	{ 0xa7, 1888000, 0, 1562578279 + 6000*120 },
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 1009826;
 static const struct {
@@ -133,7 +133,7 @@ static const struct {
   { 6, 971400, 0, 1501709789 },
 
 		// version 0xa7 starts from block 1881040 , timestamp after block 1876000 + 1week
-	{ 0xa7, 1881040, 0, 1561887557 + 7*24*60*60 },
+	{ 0xa7, 1888000, 0, 1562578279 + 7*24*60*60 },
 };
 static const uint64_t testnet_hard_fork_version_1_till = 624633;
 static const struct {
@@ -636,6 +636,7 @@ block Blockchain::pop_block_from_blockchain()
 
   update_next_cumulative_weight_limit();
   m_tx_pool.on_blockchain_dec(m_db->height()-1, get_tail_id());
+
   invalidate_block_template_cache();
 
   return popped_block;
@@ -1275,9 +1276,12 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
   LOG_PRINT_L3("Blockchain::" << __func__);
   size_t median_weight;
   uint64_t already_generated_coins;
-  uint64_t pool_cookie;
 
+  uint64_t pool_cookie;
   CRITICAL_REGION_BEGIN(m_blockchain_lock);
+  m_tx_pool.lock();
+  const auto unlock_guard = epee::misc_utils::create_scope_leave_handler([&]() { m_tx_pool.unlock(); });
+
   height = m_db->height();
   if (m_btc_valid) {
     // The pool cookie is atomic. The lack of locking is OK, as if it changes
@@ -1294,6 +1298,26 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
       return true;
     }
     MDEBUG("Not using cached template: address " << (!memcmp(&miner_address, &m_btc_address, sizeof(cryptonote::account_public_address))) << ", nonce " << (m_btc_nonce == ex_nonce) << ", cookie " << (m_btc_pool_cookie == m_tx_pool.cookie()));
+    invalidate_block_template_cache();
+  }
+
+  if (m_btc_valid) {
+    if (!memcmp(&miner_address, &m_btc_address, sizeof(cryptonote::account_public_address)) &&
+        m_btc_nonce == ex_nonce && m_btc_pool_cookie == m_tx_pool.cookie()) {
+      //MDEBUG("Using cached template");
+      LOG_PRINT_L1("Using cached template");
+      m_btc.timestamp = time(NULL); // update timestamp unconditionally
+      //statistics_tools::update_block_statistics_block_timestamp(height,m_btc.timestamp);
+      b = m_btc;
+      diffic = m_btc_difficulty;
+      expected_reward = m_btc_expected_reward;
+      return true;
+    }
+
+    MDEBUG("Not using cached template: address "
+               << (!memcmp(&miner_address, &m_btc_address, sizeof(cryptonote::account_public_address)))
+               << ", nonce " << (m_btc_nonce == ex_nonce) << ", cookie "
+               << (m_btc_pool_cookie == m_tx_pool.cookie()));
     invalidate_block_template_cache();
   }
 
@@ -1322,7 +1346,9 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
   {
     return false;
   }
+
   pool_cookie = m_tx_pool.cookie();
+
 #if defined(DEBUG_CREATE_BLOCK_TEMPLATE)
   size_t real_txs_weight = 0;
   uint64_t real_fee = 0;
@@ -3197,17 +3223,7 @@ bool Blockchain::check_block_timestamp(const block& b, uint64_t& median_ts) cons
     MERROR_VER("Timestamp of block with id: " << get_block_hash(b) << ", " << b.timestamp << ", bigger than adjusted time + " << block_ftl << " seconds");
     return false;
   }
-
-//  uint8_t hf_version = m_hardfork->get_current_version();
-//  if( hf_version > 6 && b.timestamp < get_adjusted_time() - block_ftl)
-//	{
-//		MERROR_VER("Timestamp of block with id: " << get_block_hash(b) << ", "
-//                                              << b.timestamp << ", smaller than adjusted time + "
-//                                              << block_ftl << " seconds"
-//                                              << "current version is " << (uint64_t)hf_version);
-//		return false;
-//	}
-
+  
   // if not enough blocks, no proper median yet, return true
   size_t bc_ts_check_window = m_db->height() > DIFFICULTY_ADJUST_HEIGHT ? static_cast<size_t>(BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW_ADJUST) : static_cast<size_t>(BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW);
   if(m_db->height() < bc_ts_check_window)
@@ -3623,6 +3639,8 @@ leave:
   std::shared_ptr<tools::Notify> block_notify = m_block_notify;
   if (block_notify)
     block_notify->notify(epee::string_tools::pod_to_hex(id).c_str());
+
+	invalidate_block_template_cache();
 
   return true;
 }
@@ -4597,11 +4615,13 @@ bool Blockchain::for_all_outputs(uint64_t amount, std::function<bool(uint64_t he
   return m_db->for_all_outputs(amount, f);;
 }
 
+
 void Blockchain::invalidate_block_template_cache()
 {
   MDEBUG("Invalidating block template cache");
   m_btc_valid = false;
 }
+
 
 void Blockchain::cache_block_template(const block &b, const cryptonote::account_public_address &address, const blobdata &nonce, const difficulty_type &diff, uint64_t expected_reward, uint64_t pool_cookie)
 {
