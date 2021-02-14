@@ -37,7 +37,8 @@ add_executable(difficulty-tests
 target_link_libraries(difficulty-tests
   PRIVATE
     cryptonote_core
-    ${EXTRA_LIBRARIES})
+    ${EXTRA_LIBRARIES}
+    ${EPEE_READLINE})
 set_property(TARGET difficulty-tests
   PROPERTY
     FOLDER "tests")

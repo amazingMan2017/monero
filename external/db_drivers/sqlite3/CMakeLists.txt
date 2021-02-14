@@ -7,6 +7,7 @@ if(ANDROID)
 endif()
 
 add_definitions( -DSQLITE_HAS_CODEC)
+add_definitions(-DSQLITE_HAVE_ISNAN)
 set (sqlite3_sources sqlite3.c)
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}")

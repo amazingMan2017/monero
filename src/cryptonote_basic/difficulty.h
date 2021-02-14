@@ -52,6 +52,7 @@ namespace cryptonote
      * @return true if valid, else false
      */
     bool check_hash(const crypto::hash &hash, difficulty_type difficulty);
-    difficulty_type next_difficulty(std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds);
+    difficulty_type next_difficulty(std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds, uint64_t height);
     difficulty_type next_difficulty_with_statistics(uint64_t blockheight,std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds);
+    difficulty_type LWMA1_(std::vector<uint64_t> timestamps, std::vector<uint64_t> cumulative_difficulties, uint64_t T, uint64_t N, uint64_t height, uint64_t FORK_HEIGHT, uint64_t  difficulty_guess);
 }
